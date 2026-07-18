@@ -1,0 +1,55 @@
+@import "tailwindcss";
+
+html {
+  font-size: 150%; /* Scale all typography exactly 1.5x (16px * 1.5 = 24px root) */
+}
+
+@theme {
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  
+  --color-primary: #0066FF;
+  --color-secondary: #00C853;
+  --color-accent: #FF9800;
+  
+  --color-blue-50: #F0F6FF;
+  --color-blue-100: #E0ECFF;
+  --color-blue-200: #C2D9FF;
+  --color-blue-500: #0066FF;
+  --color-blue-600: #0052CC;
+  --color-blue-700: #003D99;
+  --color-blue-900: #0F172A;
+  --color-blue-950: #0A0F1D;
+  
+  --color-emerald-50: #ECFDF5;
+  --color-emerald-100: #D1FAE5;
+  --color-emerald-500: #00C853;
+  --color-emerald-600: #00A042;
+  
+  --color-amber-50: #FFFBEB;
+  --color-amber-100: #FEF3C7;
+  --color-amber-500: #FF9800;
+  --color-amber-600: #D97706;
+  
+  --color-slate-50: #F8FAFC;
+  --color-slate-100: #F1F5F9;
+  --color-slate-200: #E2E8F0;
+  --color-slate-300: #CBD5E1;
+  --color-slate-400: #94A3B8;
+  --color-slate-500: #64748B;
+  --color-slate-600: #475569;
+  --color-slate-700: #334155;
+  --color-slate-800: #1E293B;
+  --color-slate-900: #0F172A;
+}
+
+.bg-vibrant-gradient {
+  background: linear-gradient(135deg, #0066FF 0%, #00C853 100%);
+}
+
+.sell-button-shadow {
+  box-shadow: 0 4px 12px rgba(0, 102, 255, 0.2);
+}
+
+.custom-card-shadow {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+}

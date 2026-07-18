@@ -1,0 +1,6 @@
+{
+  "name": "LocalMarket Classifieds",
+  "description": "A production-grade local classifieds marketplace similar to OLX with mock payments, realtime-like chat, analytics, database schematics, and secure server-side Gemini AI assistance.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
