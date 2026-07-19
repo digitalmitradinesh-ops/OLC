@@ -62,6 +62,7 @@ export default function AuthScreen({
   const [forgotStep, setForgotStep] = useState<1 | 2>(1);
   const [forgotOtp, setForgotOtp] = useState('');
   const [receivedOtpSimulated, setReceivedOtpSimulated] = useState<string | null>(null);
+  const [realEmailSent, setRealEmailSent] = useState<boolean>(false);
   const [forgotNewPassword, setForgotNewPassword] = useState('');
   const [showForgotNewPassword, setShowForgotNewPassword] = useState(false);
 
@@ -162,6 +163,19 @@ export default function AuthScreen({
         body: JSON.stringify({ email, password })
       });
 
+      if (response.status === 502 || response.status === 503) {
+        setErrorMsg('Server is currently starting up or restarting. Please try again in 5-10 seconds.');
+        return;
+      }
+
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        console.error('Server returned non-JSON response:', text);
+        setErrorMsg(`Server error (${response.status}). Please try again shortly.`);
+        return;
+      }
+
       const data = await response.json();
 
       if (data.success) {
@@ -174,7 +188,8 @@ export default function AuthScreen({
         generateCaptcha();
       }
     } catch (err: any) {
-      setErrorMsg('Server connection failed. Offline development bypass available in the Demo panel.');
+      console.error('Login connection error:', err);
+      setErrorMsg('Server connection failed. If you just deployed, the server may be restarting. Please try again in a moment.');
     } finally {
       setLoading(false);
     }
@@ -219,6 +234,19 @@ export default function AuthScreen({
         })
       });
 
+      if (response.status === 502 || response.status === 503) {
+        setErrorMsg('Server is currently starting up or restarting. Please try again in 5-10 seconds.');
+        return;
+      }
+
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        console.error('Server returned non-JSON response on register:', text);
+        setErrorMsg(`Server error (${response.status}). Please try again shortly.`);
+        return;
+      }
+
       const data = await response.json();
 
       if (data.success) {
@@ -236,7 +264,8 @@ export default function AuthScreen({
         setErrorMsg(data.message || 'Registration failed.');
       }
     } catch (err: any) {
-      setErrorMsg('Failed to connect to registration server.');
+      console.error('Registration connection error:', err);
+      setErrorMsg('Failed to connect to registration server. Please try again in a moment.');
     } finally {
       setLoading(false);
     }
@@ -254,6 +283,7 @@ export default function AuthScreen({
     }
 
     setLoading(true);
+    setRealEmailSent(false);
     try {
       const response = await fetch('/api/auth/forgot-password', {
         method: 'POST',
@@ -272,6 +302,9 @@ export default function AuthScreen({
         setSuccessMsg(data.message);
         // Store the simulated OTP so we can present it securely to the user in the UI!
         setReceivedOtpSimulated(data.otp);
+        if (data.realEmailSent) {
+          setRealEmailSent(true);
+        }
         setForgotStep(2);
       } else {
         setErrorMsg(data.message || 'No registered account found with these details.');
@@ -644,9 +677,15 @@ export default function AuthScreen({
                 </>
               ) : (
                 <div className="space-y-4">
-                  <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 font-medium">
-                    <span className="font-bold">Sandbox Action Bypass:</span> We have simulated sending a verification code. Input <span className="font-mono font-black text-amber-950 bg-amber-100 px-1 py-0.5 rounded">{receivedOtpSimulated}</span> below to authorize the password overwrite.
-                  </div>
+                  {realEmailSent ? (
+                    <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-900 font-medium">
+                      <span className="font-bold">Real OTP Code Dispatched:</span> A secure 6-digit verification code has been sent to <span className="font-semibold text-emerald-950">{forgotIdentifier}</span> via Gmail SMTP. Check your inbox!
+                    </div>
+                  ) : (
+                    <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 font-medium">
+                      <span className="font-bold">Sandbox Action Bypass:</span> We have simulated sending a verification code. Input <span className="font-mono font-black text-amber-950 bg-amber-100 px-1 py-0.5 rounded">{receivedOtpSimulated}</span> below to authorize the password overwrite.
+                    </div>
+                  )}
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1">
@@ -940,18 +979,35 @@ export default function AuthScreen({
 
               {/* Simulated OTP Interceptor Banner if developer mode or review is active */}
               {receivedOtpSimulated && (
-                <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 p-3 rounded-xl space-y-1 animate-pulse">
-                  <div className="flex items-center gap-1.5 text-xs font-black text-amber-800 dark:text-amber-300">
-                    <ShieldCheck className="w-4 h-4 text-amber-600" />
-                    <span>Secure Gateway Simulated OTP Dispatched!</span>
-                  </div>
-                  <p className="text-[10px] text-amber-700 dark:text-amber-400">
-                    In actual production, this goes to <span className="font-mono font-bold">{forgotIdentifier}</span>. Since we are in the secure sandbox developer playground:
-                  </p>
-                  <div className="text-xs font-bold text-slate-800 dark:text-slate-100 mt-1 flex items-center gap-2">
-                    <span>Your Verification OTP is:</span>
-                    <span className="bg-amber-100 dark:bg-amber-900 px-2 py-0.5 rounded-md font-mono font-black text-amber-900 dark:text-amber-200 tracking-widest text-sm">{receivedOtpSimulated}</span>
-                  </div>
+                <div className={`p-3 rounded-xl space-y-1 ${realEmailSent ? 'bg-emerald-50/80 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/30' : 'bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 animate-pulse'}`}>
+                  {realEmailSent ? (
+                    <>
+                      <div className="flex items-center gap-1.5 text-xs font-black text-emerald-800 dark:text-emerald-300">
+                        <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                        <span>Real Gmail OTP Dispatch Successful!</span>
+                      </div>
+                      <p className="text-[10px] text-slate-600 dark:text-slate-400">
+                        A real email with your secure OTP token has been dispatched to <span className="font-mono font-bold text-slate-800 dark:text-slate-200">{forgotIdentifier}</span>. Please refresh your inbox.
+                      </p>
+                      <p className="text-[10px] text-amber-700 dark:text-amber-400 italic">
+                        Tip: For sandbox quick testing, the code is also bypassed here: <strong className="font-mono font-black">{receivedOtpSimulated}</strong>
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex items-center gap-1.5 text-xs font-black text-amber-800 dark:text-amber-300">
+                        <ShieldCheck className="w-4 h-4 text-amber-600" />
+                        <span>Secure Gateway Simulated OTP Dispatched!</span>
+                      </div>
+                      <p className="text-[10px] text-amber-700 dark:text-amber-400">
+                        In actual production, this goes to <span className="font-mono font-bold">{forgotIdentifier}</span>. Since we are in the secure sandbox developer playground:
+                      </p>
+                      <div className="text-xs font-bold text-slate-800 dark:text-slate-100 mt-1 flex items-center gap-2">
+                        <span>Your Verification OTP is:</span>
+                        <span className="bg-amber-100 dark:bg-amber-900 px-2 py-0.5 rounded-md font-mono font-black text-amber-900 dark:text-amber-200 tracking-widest text-sm">{receivedOtpSimulated}</span>
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
 

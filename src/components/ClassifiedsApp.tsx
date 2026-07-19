@@ -4045,7 +4045,7 @@ Whether you're a local resident decluttering your home, a professional service a
             )}
 
             {adminActiveTab === 'metrics' && (
-              <AdminMetricsViewer />
+              <AdminMetricsViewer token={token} />
             )}
 
             {adminActiveTab === 'database' && (

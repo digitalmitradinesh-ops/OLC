@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Users, 
   TrendingUp, 
@@ -27,7 +27,13 @@ import {
   Check,
   AlertTriangle,
   Code,
-  Copy
+  Copy,
+  Mail,
+  MessageSquare,
+  Save,
+  Send,
+  EyeOff,
+  Settings2
 } from 'lucide-react';
 
 interface AnalyticsData {
@@ -93,8 +99,173 @@ interface SecurityLog {
   endpoint: string;
 }
 
-export default function AdminMetricsViewer() {
-  const [activeSubTab, setActiveSubTab] = useState<'analytics' | 'payments' | 'security' | 'seo'>('analytics');
+interface AdminMetricsViewerProps {
+  token?: string | null;
+}
+
+export default function AdminMetricsViewer({ token }: AdminMetricsViewerProps) {
+  const [activeSubTab, setActiveSubTab] = useState<'analytics' | 'payments' | 'security' | 'seo' | 'integrations'>('analytics');
+
+  // Integrations settings state
+  const [gmailEnabled, setGmailEnabled] = useState(false);
+  const [gmailUser, setGmailUser] = useState('');
+  const [gmailPass, setGmailPass] = useState('');
+  const [showGmailPass, setShowGmailPass] = useState(false);
+
+  const [whatsappEnabled, setWhatsappEnabled] = useState(false);
+  const [whatsappProvider, setWhatsappProvider] = useState<'twilio' | 'whatsapp_cloud_api' | 'sandbox'>('sandbox');
+  const [whatsappPhone, setWhatsappPhone] = useState('');
+  const [whatsappApiToken, setWhatsappApiToken] = useState('');
+  const [showWhatsappToken, setShowWhatsappToken] = useState(false);
+  const [whatsappAccountId, setWhatsappAccountId] = useState('');
+  const [whatsappPhoneNumberId, setWhatsappPhoneNumberId] = useState('');
+  const [whatsappSandboxRecipient, setWhatsappSandboxRecipient] = useState('');
+
+  // Tester states
+  const [testEmail, setTestEmail] = useState('');
+  const [testPhone, setTestPhone] = useState('');
+  const [loadingIntegrations, setLoadingIntegrations] = useState(false);
+  const [savingIntegrations, setSavingIntegrations] = useState(false);
+  const [testingEmail, setTestingEmail] = useState(false);
+  const [testingWhatsapp, setTestingWhatsapp] = useState(false);
+  const [integrationMsg, setIntegrationMsg] = useState('');
+  const [integrationError, setIntegrationError] = useState('');
+
+  // Setup Guide active tab state
+  const [activeGuideTab, setActiveGuideTab] = useState<'gmail' | 'twilio' | 'meta'>('gmail');
+
+  useEffect(() => {
+    if (!token) return;
+    const fetchIntegrations = async () => {
+      setLoadingIntegrations(true);
+      try {
+        const response = await fetch('/api/admin/get-integrations', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token })
+        });
+        const data = await response.json();
+        if (data.success && data.config) {
+          const c = data.config;
+          setGmailEnabled(c.gmail?.enabled || false);
+          setGmailUser(c.gmail?.user || '');
+          setGmailPass(c.gmail?.pass || '');
+          setWhatsappEnabled(c.whatsapp?.enabled || false);
+          setWhatsappProvider(c.whatsapp?.provider || 'sandbox');
+          setWhatsappPhone(c.whatsapp?.whatsappPhone || '');
+          setWhatsappApiToken(c.whatsapp?.apiToken || '');
+          setWhatsappAccountId(c.whatsapp?.accountId || '');
+          setWhatsappPhoneNumberId(c.whatsapp?.phoneNumberId || '');
+          setWhatsappSandboxRecipient(c.whatsapp?.sandboxRecipient || '');
+        }
+      } catch (err) {
+        console.error('Failed to load integrations', err);
+      } finally {
+        setLoadingIntegrations(false);
+      }
+    };
+    fetchIntegrations();
+  }, [token]);
+
+  const handleSaveIntegrations = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!token) return;
+    setSavingIntegrations(true);
+    setIntegrationMsg('');
+    setIntegrationError('');
+    try {
+      const response = await fetch('/api/admin/save-integrations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          token,
+          config: {
+            gmail: {
+              enabled: gmailEnabled,
+              user: gmailUser,
+              pass: gmailPass
+            },
+            whatsapp: {
+              enabled: whatsappEnabled,
+              provider: whatsappProvider,
+              whatsappPhone,
+              apiToken: whatsappApiToken,
+              accountId: whatsappAccountId,
+              phoneNumberId: whatsappPhoneNumberId,
+              sandboxRecipient: whatsappSandboxRecipient
+            }
+          }
+        })
+      });
+      const data = await response.json();
+      if (data.success) {
+        setIntegrationMsg('Configurations saved successfully!');
+        setTimeout(() => setIntegrationMsg(''), 4000);
+      } else {
+        setIntegrationError(data.message || 'Failed to save configurations');
+      }
+    } catch (err) {
+      setIntegrationError('Failed to connect to integration server.');
+    } finally {
+      setSavingIntegrations(false);
+    }
+  };
+
+  const handleTestEmail = async () => {
+    if (!token) return;
+    if (!testEmail) {
+      setIntegrationError('Please enter a test email address first.');
+      return;
+    }
+    setTestingEmail(true);
+    setIntegrationMsg('');
+    setIntegrationError('');
+    try {
+      const response = await fetch('/api/admin/integrations/test-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, testEmail })
+      });
+      const data = await response.json();
+      if (response.ok && data.success) {
+        setIntegrationMsg(data.message);
+      } else {
+        setIntegrationError(data.message || 'SMTP Email dispatch failed.');
+      }
+    } catch (err: any) {
+      setIntegrationError('Email test request failed: ' + err.message);
+    } finally {
+      setTestingEmail(false);
+    }
+  };
+
+  const handleTestWhatsapp = async () => {
+    if (!token) return;
+    if (!testPhone) {
+      setIntegrationError('Please enter a test phone number first.');
+      return;
+    }
+    setTestingWhatsapp(true);
+    setIntegrationMsg('');
+    setIntegrationError('');
+    try {
+      const response = await fetch('/api/admin/integrations/test-whatsapp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, testPhone })
+      });
+      const data = await response.json();
+      if (response.ok && data.success) {
+        setIntegrationMsg(data.message);
+      } else {
+        setIntegrationError(data.message || 'WhatsApp OTP dispatch failed.');
+      }
+    } catch (err: any) {
+      setIntegrationError('WhatsApp test request failed: ' + err.message);
+    } finally {
+      setTestingWhatsapp(false);
+    }
+  };
   
   // Interactive SEO Dashboard states
   const [selectedSeoPage, setSelectedSeoPage] = useState<'home' | 'iphone' | 'furniture' | 'category'>('home');
@@ -311,6 +482,18 @@ export default function AdminMetricsViewer() {
         >
           <Globe2 className="w-4 h-4" />
           <span>SEO & Web Vitals</span>
+        </button>
+
+        <button
+          onClick={() => setActiveSubTab('integrations')}
+          className={`px-4 py-2 text-xs font-bold rounded-xl transition cursor-pointer flex items-center gap-1.5 ${
+            activeSubTab === 'integrations'
+              ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
+              : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
+          }`}
+        >
+          <Settings2 className="w-4 h-4" />
+          <span>OTP & SMTP Integrations</span>
         </button>
       </div>
 
@@ -1626,6 +1809,516 @@ export default function AdminMetricsViewer() {
               </div>
             </div>
 
+          </div>
+
+        </div>
+      )}
+
+      {activeSubTab === 'integrations' && (
+        <div className="space-y-6 animate-fade-in text-slate-800 dark:text-slate-200">
+          {/* Header Info Banner */}
+          <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900/50 rounded-2xl p-5 space-y-2">
+            <h3 className="font-bold text-sm text-blue-900 dark:text-blue-300 flex items-center gap-2">
+              <Settings2 className="w-5 h-5 text-blue-500" />
+              Dynamic Communications Manager
+            </h3>
+            <p className="text-xs text-blue-800/80 dark:text-blue-300/80 leading-relaxed">
+              Connect and verify your real <strong>Gmail SMTP</strong> email delivery credentials and <strong>WhatsApp OTP API Gateway</strong> (supports Twilio & Meta WhatsApp Business Cloud API) directly from this Admin Panel.
+            </p>
+          </div>
+
+          <form onSubmit={handleSaveIntegrations} className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              
+              {/* 1. GMAIL SMTP CONTAINER */}
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-2xl shadow-xs space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                  <div className="flex items-center gap-2.5">
+                    <Mail className="w-5 h-5 text-red-500" />
+                    <div>
+                      <h4 className="font-bold text-sm text-slate-900 dark:text-white">Gmail Account Connector</h4>
+                      <p className="text-[11px] text-slate-400">Dispatch real secure password recovery OTP codes via Gmail</p>
+                    </div>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      checked={gmailEnabled}
+                      onChange={(e) => setGmailEnabled(e.target.checked)}
+                      className="sr-only peer" 
+                    />
+                    <div className="w-9 h-5 bg-slate-200 dark:bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-slate-600 peer-checked:bg-blue-600"></div>
+                  </label>
+                </div>
+
+                <div className={`space-y-3 ${!gmailEnabled ? 'opacity-50 pointer-events-none' : ''}`}>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Gmail Address</label>
+                    <input 
+                      type="email" 
+                      value={gmailUser}
+                      onChange={(e) => setGmailUser(e.target.value)}
+                      placeholder="e.g. your-email@gmail.com"
+                      disabled={!gmailEnabled}
+                      className="w-full text-xs bg-slate-50 dark:bg-slate-800/50 text-slate-800 dark:text-white rounded-xl p-2.5 border border-slate-200 dark:border-slate-700"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Google App Password (16-char)</label>
+                    <div className="relative">
+                      <input 
+                        type={showGmailPass ? "text" : "password"} 
+                        value={gmailPass}
+                        onChange={(e) => setGmailPass(e.target.value)}
+                        placeholder="e.g. abcd efgh ijkl mnop"
+                        disabled={!gmailEnabled}
+                        className="w-full text-xs bg-slate-50 dark:bg-slate-800/50 text-slate-800 dark:text-white rounded-xl p-2.5 pr-10 border border-slate-200 dark:border-slate-700 font-mono"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowGmailPass(!showGmailPass)}
+                        className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                      >
+                        <EyeOff className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <p className="text-[10px] text-slate-400 leading-tight">
+                      *Generate this in Google Account &gt; Security &gt; 2-Step Verification &gt; App Passwords. Do NOT enter your normal account login password.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* 2. WHATSAPP OTP GATEWAY */}
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-2xl shadow-xs space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                  <div className="flex items-center gap-2.5">
+                    <MessageSquare className="w-5 h-5 text-emerald-500" />
+                    <div>
+                      <h4 className="font-bold text-sm text-slate-900 dark:text-white">WhatsApp OTP Gateway</h4>
+                      <p className="text-[11px] text-slate-400">Deliver user SMS/WhatsApp OTP verify challenges instantly</p>
+                    </div>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      checked={whatsappEnabled}
+                      onChange={(e) => setWhatsappEnabled(e.target.checked)}
+                      className="sr-only peer" 
+                    />
+                    <div className="w-9 h-5 bg-slate-200 dark:bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-slate-600 peer-checked:bg-blue-600"></div>
+                  </label>
+                </div>
+
+                <div className={`space-y-3 ${!whatsappEnabled ? 'opacity-50 pointer-events-none' : ''}`}>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Gateway Provider</label>
+                    <select
+                      value={whatsappProvider}
+                      onChange={(e: any) => setWhatsappProvider(e.target.value)}
+                      disabled={!whatsappEnabled}
+                      className="w-full text-xs bg-slate-50 dark:bg-slate-800/50 text-slate-800 dark:text-white rounded-xl p-2.5 border border-slate-200 dark:border-slate-700"
+                    >
+                      <option value="sandbox">Sandbox Simulator Mode (Local bypass)</option>
+                      <option value="twilio">Twilio WhatsApp Business Gateway</option>
+                      <option value="whatsapp_cloud_api">Meta WhatsApp Cloud API (Direct)</option>
+                    </select>
+                  </div>
+
+                  {whatsappProvider === 'twilio' && (
+                    <>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Twilio Account SID</label>
+                          <input 
+                            type="text" 
+                            value={whatsappAccountId}
+                            onChange={(e) => setWhatsappAccountId(e.target.value)}
+                            placeholder="ACxxxxxxxxxxxxxxxxxxxx"
+                            disabled={!whatsappEnabled}
+                            className="w-full text-xs bg-slate-50 dark:bg-slate-800/50 text-slate-800 dark:text-white rounded-xl p-2.5 border border-slate-200 dark:border-slate-700 font-mono"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Sender WhatsApp Number</label>
+                          <input 
+                            type="text" 
+                            value={whatsappPhone}
+                            onChange={(e) => setWhatsappPhone(e.target.value)}
+                            placeholder="+14155238886"
+                            disabled={!whatsappEnabled}
+                            className="w-full text-xs bg-slate-50 dark:bg-slate-800/50 text-slate-800 dark:text-white rounded-xl p-2.5 border border-slate-200 dark:border-slate-700"
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Twilio Auth Token</label>
+                        <div className="relative">
+                          <input 
+                            type={showWhatsappToken ? "text" : "password"} 
+                            value={whatsappApiToken}
+                            onChange={(e) => setWhatsappApiToken(e.target.value)}
+                            placeholder="Twilio Auth Token secret"
+                            disabled={!whatsappEnabled}
+                            className="w-full text-xs bg-slate-50 dark:bg-slate-800/50 text-slate-800 dark:text-white rounded-xl p-2.5 pr-10 border border-slate-200 dark:border-slate-700 font-mono"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowWhatsappToken(!showWhatsappToken)}
+                            className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                          >
+                            <EyeOff className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  {whatsappProvider === 'whatsapp_cloud_api' && (
+                    <>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Phone Number ID</label>
+                          <input 
+                            type="text" 
+                            value={whatsappPhoneNumberId}
+                            onChange={(e) => setWhatsappPhoneNumberId(e.target.value)}
+                            placeholder="15-digit Phone Number ID"
+                            disabled={!whatsappEnabled}
+                            className="w-full text-xs bg-slate-50 dark:bg-slate-800/50 text-slate-800 dark:text-white rounded-xl p-2.5 border border-slate-200 dark:border-slate-700 font-mono"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">WhatsApp Business Account ID</label>
+                          <input 
+                            type="text" 
+                            value={whatsappAccountId}
+                            onChange={(e) => setWhatsappAccountId(e.target.value)}
+                            placeholder="15-digit Account ID"
+                            disabled={!whatsappEnabled}
+                            className="w-full text-xs bg-slate-50 dark:bg-slate-800/50 text-slate-800 dark:text-white rounded-xl p-2.5 border border-slate-200 dark:border-slate-700"
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Meta Permanent API Bearer Token</label>
+                        <div className="relative">
+                          <input 
+                            type={showWhatsappToken ? "text" : "password"} 
+                            value={whatsappApiToken}
+                            onChange={(e) => setWhatsappApiToken(e.target.value)}
+                            placeholder="EAAGxxxxx..."
+                            disabled={!whatsappEnabled}
+                            className="w-full text-xs bg-slate-50 dark:bg-slate-800/50 text-slate-800 dark:text-white rounded-xl p-2.5 pr-10 border border-slate-200 dark:border-slate-700 font-mono"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowWhatsappToken(!showWhatsappToken)}
+                            className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                          >
+                            <EyeOff className="w-4 h-4" />
+                          </button>
+                        </div>
+                        <p className="text-[10px] text-slate-400">
+                          Configure this in your Facebook Developer Dashboard under WhatsApp Cloud API settings.
+                        </p>
+                      </div>
+                    </>
+                  )}
+
+                  {whatsappProvider === 'sandbox' && (
+                    <div className="p-4 bg-slate-50 dark:bg-slate-800/40 rounded-xl space-y-1.5 border border-slate-100 dark:border-slate-800 text-[11px] text-slate-500 leading-normal">
+                      <p className="font-bold text-amber-600 flex items-center gap-1">
+                        <AlertTriangle className="w-3.5 h-3.5" />
+                        Developer Sandbox Bypass Mode Active
+                      </p>
+                      <p>
+                        No real messages will be sent. Secure code delivery is simulated client-side. Complete verification instantly using the provided on-screen dialogs or logs.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+            </div>
+
+            {/* MESSAGE FEEDBACK TOAST/ALERT IN PANEL */}
+            {integrationMsg && (
+              <div className="p-4 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/30 text-emerald-800 dark:text-emerald-300 rounded-2xl text-xs font-bold flex items-center gap-2 animate-fade-in shadow-xs">
+                <CheckCircle className="w-5 h-5 text-emerald-600" />
+                <span>{integrationMsg}</span>
+              </div>
+            )}
+            {integrationError && (
+              <div className="p-4 bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/30 text-rose-800 dark:text-rose-300 rounded-2xl text-xs font-bold flex items-center gap-2 animate-fade-in shadow-xs">
+                <ShieldAlert className="w-5 h-5 text-rose-600" />
+                <span>{integrationError}</span>
+              </div>
+            )}
+
+            {/* SAVE BUTTON */}
+            <div className="flex justify-end pt-2">
+              <button
+                type="submit"
+                disabled={savingIntegrations || loadingIntegrations}
+                className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-bold rounded-2xl text-xs transition flex items-center gap-2 shadow-lg shadow-blue-500/20 cursor-pointer"
+              >
+                {savingIntegrations ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <span>Saving configurations...</span>
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4" />
+                    <span>Save Integration Credentials</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+
+          {/* 3. VERIFICATION & LIVE INTEGRATION TEST BENCH */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-2xl shadow-xs space-y-6">
+            <div>
+              <h4 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5 text-blue-500" />
+                Dynamic Communications Live Test Bench
+              </h4>
+              <p className="text-xs text-slate-400">Trigger manual end-to-end sandbox or live OTP checks to confirm Gmail SMTP or WhatsApp API status.</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              
+              {/* Test Email Form */}
+              <div className="bg-slate-50 dark:bg-slate-800/40 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-3">
+                <h5 className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                  <Mail className="w-4 h-4 text-red-500" />
+                  Test Gmail OTP Dispatch
+                </h5>
+                <div className="flex gap-2">
+                  <input 
+                    type="email" 
+                    value={testEmail}
+                    onChange={(e) => setTestEmail(e.target.value)}
+                    placeholder="Recipient email address"
+                    className="flex-1 text-xs bg-white dark:bg-slate-900 text-slate-800 dark:text-white rounded-xl p-2.5 border border-slate-200 dark:border-slate-700"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleTestEmail}
+                    disabled={testingEmail}
+                    className="px-4 bg-slate-900 dark:bg-white text-white dark:text-slate-950 font-bold rounded-xl text-xs hover:bg-slate-800 dark:hover:bg-slate-100 transition flex items-center gap-1.5 cursor-pointer"
+                  >
+                    {testingEmail ? (
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Send className="w-3.5 h-3.5" />
+                    )}
+                    <span>Send Test</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Test WhatsApp Form */}
+              <div className="bg-slate-50 dark:bg-slate-800/40 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-3">
+                <h5 className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                  <MessageSquare className="w-4 h-4 text-emerald-500" />
+                  Test WhatsApp OTP Dispatch
+                </h5>
+                <div className="flex gap-2">
+                  <input 
+                    type="text" 
+                    value={testPhone}
+                    onChange={(e) => setTestPhone(e.target.value)}
+                    placeholder="Recipient mobile with country code"
+                    className="flex-1 text-xs bg-white dark:bg-slate-900 text-slate-800 dark:text-white rounded-xl p-2.5 border border-slate-200 dark:border-slate-700"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleTestWhatsapp}
+                    disabled={testingWhatsapp}
+                    className="px-4 bg-slate-900 dark:bg-white text-white dark:text-slate-950 font-bold rounded-xl text-xs hover:bg-slate-800 dark:hover:bg-slate-100 transition flex items-center gap-1.5 cursor-pointer"
+                  >
+                    {testingWhatsapp ? (
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Send className="w-3.5 h-3.5" />
+                    )}
+                    <span>Send Test</span>
+                  </button>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          {/* 4. STEP-BY-STEP SETUP GUIDES */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-2xl shadow-xs space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
+              <div>
+                <h4 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                  <Code className="w-5 h-5 text-indigo-500" />
+                  Integration Setup Manual & Step-by-Step Guides
+                </h4>
+                <p className="text-xs text-slate-400">Interactive checklists and credentials generation instructions for the Admin.</p>
+              </div>
+
+              {/* Guide Tabs Selector */}
+              <div className="flex gap-1.5 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+                <button
+                  type="button"
+                  onClick={() => setActiveGuideTab('gmail')}
+                  className={`px-3 py-1.5 text-[11px] font-bold rounded-lg transition cursor-pointer ${
+                    activeGuideTab === 'gmail'
+                      ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs'
+                      : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                  }`}
+                >
+                  Gmail SMTP
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveGuideTab('twilio')}
+                  className={`px-3 py-1.5 text-[11px] font-bold rounded-lg transition cursor-pointer ${
+                    activeGuideTab === 'twilio'
+                      ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs'
+                      : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                  }`}
+                >
+                  Twilio WhatsApp
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveGuideTab('meta')}
+                  className={`px-3 py-1.5 text-[11px] font-bold rounded-lg transition cursor-pointer ${
+                    activeGuideTab === 'meta'
+                      ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs'
+                      : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                  }`}
+                >
+                  Meta Cloud API
+                </button>
+              </div>
+            </div>
+
+            {/* GMAIL SMTP GUIDE */}
+            {activeGuideTab === 'gmail' && (
+              <div className="space-y-4 animate-fade-in text-xs text-slate-600 dark:text-slate-350 leading-relaxed">
+                <div className="flex items-start gap-3 p-3 bg-red-500/5 rounded-xl border border-red-500/10">
+                  <Mail className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+                  <div>
+                    <h5 className="font-bold text-slate-800 dark:text-white mb-1">Gmail SMTP Verification Pipeline</h5>
+                    <p>Secures password-less logins and listing updates by dispatching real 6-digit alphanumeric authentication codes straight to the user's inbox.</p>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex items-start gap-2.5">
+                    <span className="w-5 h-5 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-[10px] font-bold text-slate-600 dark:text-slate-400 shrink-0">1</span>
+                    <div>
+                      <p className="font-semibold text-slate-800 dark:text-slate-200">Enable 2-Step Verification</p>
+                      <p>Open your Google Account page, navigate to the <strong>Security</strong> tab, locate <strong>2-Step Verification</strong>, and activate it for your Google Account.</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-2.5">
+                    <span className="w-5 h-5 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-[10px] font-bold text-slate-600 dark:text-slate-400 shrink-0">2</span>
+                    <div>
+                      <p className="font-semibold text-slate-800 dark:text-slate-200">Create an App Password</p>
+                      <p>Under 2-Step Verification settings, scroll to the bottom and select <strong>App Passwords</strong>. Enter a name (e.g. "Classifieds Marketplace") and click Create. Copy the generated <strong>16-character code</strong> (looks like: <code className="font-mono bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded text-red-500 font-bold">abcd efgh ijkl mnop</code>).</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-2.5">
+                    <span className="w-5 h-5 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-[10px] font-bold text-slate-600 dark:text-slate-400 shrink-0">3</span>
+                    <div>
+                      <p className="font-semibold text-slate-800 dark:text-slate-200">Configure Credentials & Toggle Enable</p>
+                      <p>Paste your Gmail address and the 16-character App Password into the connector form above, check the <strong>Gmail Connector Enable Switch</strong>, and hit Save.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* TWILIO WHATSAPP GUIDE */}
+            {activeGuideTab === 'twilio' && (
+              <div className="space-y-4 animate-fade-in text-xs text-slate-600 dark:text-slate-350 leading-relaxed">
+                <div className="flex items-start gap-3 p-3 bg-blue-500/5 rounded-xl border border-blue-500/10">
+                  <MessageSquare className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
+                  <div>
+                    <h5 className="font-bold text-slate-800 dark:text-white mb-1">Twilio WhatsApp Sandbox Setup</h5>
+                    <p>Deliver secure OTP challenge codes instantly to users on WhatsApp via Twilio's compliant global communications gateway.</p>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex items-start gap-2.5">
+                    <span className="w-5 h-5 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-[10px] font-bold text-slate-600 dark:text-slate-400 shrink-0">1</span>
+                    <div>
+                      <p className="font-semibold text-slate-800 dark:text-slate-200">Extract API Keys from Twilio Console</p>
+                      <p>Sign up/Log in to the <strong>Twilio Console</strong>. Locate your <strong>Account SID</strong> and <strong>Auth Token</strong> on the primary dashboard and copy them.</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-2.5">
+                    <span className="w-5 h-5 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-[10px] font-bold text-slate-600 dark:text-slate-400 shrink-0">2</span>
+                    <div>
+                      <p className="font-semibold text-slate-800 dark:text-slate-200">Register recipient on Twilio WhatsApp Sandbox</p>
+                      <p>Go to <strong>Messaging &gt; Try It Out &gt; Send a WhatsApp Message</strong>. Scan the QR code or send the designated sandbox phrase (e.g. <code className="font-mono bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded text-emerald-500">join bounds-some</code>) to the Twilio Sandbox WhatsApp number (<code className="font-mono bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded font-bold">+1 415 523 8886</code>).</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-2.5">
+                    <span className="w-5 h-5 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-[10px] font-bold text-slate-600 dark:text-slate-400 shrink-0">3</span>
+                    <div>
+                      <p className="font-semibold text-slate-800 dark:text-slate-200">Save Credentials & Dispatch Test</p>
+                      <p>Fill in <strong>Account SID</strong>, <strong>Auth Token</strong>, and the sender number (<code className="font-mono bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded">+14155238886</code>), then test using the live verification field below.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* META CLOUD API GUIDE */}
+            {activeGuideTab === 'meta' && (
+              <div className="space-y-4 animate-fade-in text-xs text-slate-600 dark:text-slate-350 leading-relaxed">
+                <div className="flex items-start gap-3 p-3 bg-emerald-500/5 rounded-xl border border-emerald-500/10">
+                  <CheckCircle className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
+                  <div>
+                    <h5 className="font-bold text-slate-800 dark:text-white mb-1">Meta WhatsApp Cloud API Integration</h5>
+                    <p>Industrial, highly optimized delivery direct from Meta servers (highest deliverability SLA, no third-party branding).</p>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex items-start gap-2.5">
+                    <span className="w-5 h-5 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-[10px] font-bold text-slate-600 dark:text-slate-400 shrink-0">1</span>
+                    <div>
+                      <p className="font-semibold text-slate-805 dark:text-slate-200">Configure Facebook App</p>
+                      <p>Visit <strong>Meta for Developers</strong>, click <strong>My Apps</strong>, click <strong>Create App</strong>, choose the <strong>Business</strong> type, and select <strong>WhatsApp</strong> as your product.</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-2.5">
+                    <span className="w-5 h-5 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-[10px] font-bold text-slate-600 dark:text-slate-400 shrink-0">2</span>
+                    <div>
+                      <p className="font-semibold text-slate-805 dark:text-slate-200">Acquire Account & Phone IDs</p>
+                      <p>In the Left Sidebar, open <strong>WhatsApp &gt; API Setup</strong>. Copy your <strong>Phone Number ID</strong> (15-digit code) and your <strong>WhatsApp Business Account ID</strong> (15-digit code).</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-2.5">
+                    <span className="w-5 h-5 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-[10px] font-bold text-slate-600 dark:text-slate-400 shrink-0">3</span>
+                    <div>
+                      <p className="font-semibold text-slate-805 dark:text-slate-200">Generate Permanent Bearer Token</p>
+                      <p>In your Meta Business Manager console, under <strong>Users &gt; System Users</strong>, add a system user, assign the <strong>WhatsApp Business</strong> resource with complete access, and click <strong>Generate New Token</strong>. Make sure to select the permanent option.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
         </div>

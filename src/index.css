@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 html {
-  font-size: 150%; /* Scale all typography exactly 1.5x (16px * 1.5 = 24px root) */
+  font-size: 120%; /* Scale all typography to 120% (exactly 20% smaller than the previous 150%) */
 }
 
 @theme {

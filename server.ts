@@ -10,8 +10,118 @@ import { GoogleGenAI } from '@google/genai';
 import dotenv from 'dotenv';
 import crypto from 'crypto';
 import fs from 'fs';
+import nodemailer from 'nodemailer';
 
 dotenv.config();
+
+const INTEGRATIONS_FILE_PATH = path.join(process.cwd(), 'website_integrations.json');
+
+const DEFAULT_INTEGRATIONS = {
+  gmail: {
+    enabled: false,
+    user: '',
+    pass: ''
+  },
+  whatsapp: {
+    enabled: false,
+    provider: 'sandbox',
+    whatsappPhone: '',
+    apiToken: '',
+    accountId: '',
+    phoneNumberId: '',
+    sandboxRecipient: ''
+  }
+};
+
+function loadIntegrations() {
+  try {
+    if (fs.existsSync(INTEGRATIONS_FILE_PATH)) {
+      const data = fs.readFileSync(INTEGRATIONS_FILE_PATH, 'utf-8');
+      return { ...DEFAULT_INTEGRATIONS, ...JSON.parse(data) };
+    }
+  } catch (err) {
+    console.error('Error loading integrations file:', err);
+  }
+  return DEFAULT_INTEGRATIONS;
+}
+
+function saveIntegrations(config: any) {
+  try {
+    fs.writeFileSync(INTEGRATIONS_FILE_PATH, JSON.stringify(config, null, 2), 'utf-8');
+  } catch (err) {
+    console.error('Error saving integrations file:', err);
+  }
+}
+
+/**
+ * Sends a secure verification OTP email using Gmail SMTP and Nodemailer.
+ * Prefers configuration from integrations file, falling back to GMAIL_USER / GMAIL_APP_PASSWORD env vars.
+ */
+async function sendEmailOtp(toEmail: string, otpCode: string): Promise<boolean> {
+  const integrations = loadIntegrations();
+  
+  let gmailUser = (integrations.gmail && integrations.gmail.enabled) ? integrations.gmail.user : undefined;
+  let gmailPass = (integrations.gmail && integrations.gmail.enabled) ? integrations.gmail.pass : undefined;
+
+  if (!gmailUser || !gmailPass) {
+    gmailUser = process.env.GMAIL_USER;
+    gmailPass = process.env.GMAIL_APP_PASSWORD;
+  }
+
+  if (!gmailUser || !gmailPass) {
+    console.log('[SMTP] Gmail credentials not configured (neither dynamic nor .env). Falling back to sandbox simulation.');
+    return false;
+  }
+
+  try {
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: gmailUser,
+        pass: gmailPass,
+      },
+    });
+
+    const mailOptions = {
+      from: `"LocalMarket Classifieds" <${gmailUser}>`,
+      to: toEmail,
+      subject: `[LocalMarket] Verification Code: ${otpCode}`,
+      html: `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 580px; margin: 0 auto; padding: 32px 24px; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+          <div style="text-align: center; margin-bottom: 32px; border-bottom: 1px solid #f1f5f9; padding-bottom: 20px;">
+            <span style="font-size: 28px; font-weight: 800; color: #2563eb; letter-spacing: -0.03em;">LocalMarket</span>
+            <div style="font-size: 13px; color: #64748b; font-weight: 500; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.05em;">Account Protection & Recovery</div>
+          </div>
+          
+          <div style="margin-bottom: 32px;">
+            <p style="color: #1e293b; font-size: 16px; line-height: 1.6; margin: 0 0 16px 0; font-weight: 500;">Hello,</p>
+            <p style="color: #475569; font-size: 15px; line-height: 1.6; margin: 0 0 24px 0;">We received a request to recover or verify your password on the LocalMarket classifieds platform. Use the following 6-digit secure code to authenticate your request:</p>
+            
+            <div style="text-align: center; margin: 36px 0; padding: 20px; background-color: #f8fafc; border-radius: 12px; border: 1px dashed #cbd5e1;">
+              <span style="font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 38px; font-weight: 800; color: #0f172a; letter-spacing: 8px; display: inline-block; padding-left: 8px;">${otpCode}</span>
+            </div>
+            
+            <p style="color: #64748b; font-size: 13px; line-height: 1.6; margin: 0 0 8px 0;">This security code is valid for <strong>10 minutes</strong> and can only be used once.</p>
+            <p style="color: #ef4444; font-size: 12px; font-weight: 600; margin: 0;">Important: Never share this OTP verification code with anyone, including website managers or support staff.</p>
+          </div>
+          
+          <div style="padding-top: 24px; border-top: 1px solid #f1f5f9; text-align: center;">
+            <p style="color: #94a3b8; font-size: 12px; margin: 0 0 6px 0;">If you did not request a verification code, you can safely ignore or delete this email.</p>
+            <p style="color: #94a3b8; font-size: 12px; margin: 0; font-weight: 500;">&copy; 2026 LocalMarket. Built with AI Studio.</p>
+          </div>
+        </div>
+      `
+    };
+
+    await transporter.sendMail(mailOptions);
+    console.log(`[SMTP] Verification code successfully sent to Gmail inbox: ${toEmail}`);
+    return true;
+  } catch (error) {
+    console.error('[SMTP] Failed to dispatch real email via Nodemailer:', error);
+    return false;
+  }
+}
+
 
 const app = express();
 const PORT = 3000;
@@ -750,7 +860,7 @@ app.post('/api/auth/update-profile', (req, res) => {
 const pendingOtps = new Map<string, { otp: string; expires: number }>();
 
 // Forgot Password API Endpoint (Email or Mobile OTP)
-app.post('/api/auth/forgot-password', (req, res) => {
+app.post('/api/auth/forgot-password', async (req, res) => {
   const { identifier, method } = req.body; // method is 'email' | 'mobile'
 
   if (!identifier || !method) {
@@ -790,12 +900,42 @@ app.post('/api/auth/forgot-password', (req, res) => {
     expires: Date.now() + 10 * 60 * 1000 // 10 minutes expiration
   });
 
-  res.json({
-    success: true,
-    message: `A secure verification code has been dispatched to your ${method === 'email' ? 'email' : 'mobile device'} (simulated).`,
-    otp: otpCode, // Send back in sandbox response for seamless client-side verification
-    method
-  });
+  if (method === 'email') {
+    const isSent = await sendEmailOtp(foundUser.email, otpCode);
+    if (isSent) {
+      return res.json({
+        success: true,
+        message: `A secure 6-digit verification code has been successfully dispatched to your email address (${foundUser.email}). Please check your inbox or spam folder.`,
+        otp: otpCode, // Retained in JSON for sandbox testing capability
+        realEmailSent: true,
+        method
+      });
+    } else {
+      return res.json({
+        success: true,
+        message: `A secure verification code has been generated. To receive real emails via Gmail, please configure GMAIL_USER and GMAIL_APP_PASSWORD in the AI Studio environment settings.`,
+        otp: otpCode, // Retained in JSON for sandbox testing capability
+        realEmailSent: false,
+        method
+      });
+    }
+  }
+
+  if (method === 'mobile') {
+    const result = await sendWhatsAppOtp(foundUser.phone, otpCode);
+    const integrations = loadIntegrations();
+    const isReal = result.success && integrations.whatsapp && integrations.whatsapp.enabled && integrations.whatsapp.provider !== 'sandbox';
+    return res.json({
+      success: true,
+      message: isReal 
+        ? `A secure verification code has been dispatched to your WhatsApp number (${foundUser.phone}). Please check your chat.`
+        : `A secure verification code has been generated. To receive real WhatsApp messages, please configure Twilio or WhatsApp Cloud API in the Admin Panel.`,
+      otp: otpCode, // Send back in sandbox response for seamless client-side verification
+      realEmailSent: false,
+      realSmsSent: isReal,
+      method
+    });
+  }
 });
 
 // Reset Password API Endpoint
@@ -934,6 +1074,265 @@ app.post('/api/admin/get-gemini-config', (req, res) => {
     email,
     hasKey: rawKey !== '',
     maskedKey
+  });
+});
+
+async function sendTwilioWhatsApp(config: any, toPhone: string, otpCode: string): Promise<{ success: boolean; message: string }> {
+  try {
+    const { accountId, apiToken, whatsappPhone } = config;
+    if (!accountId || !apiToken || !whatsappPhone) {
+      return { success: false, message: 'Twilio SID, Auth Token, and Sender Phone are required.' };
+    }
+    
+    let formattedTo = toPhone.trim().replace(/\s+/g, '');
+    if (!formattedTo.startsWith('+')) {
+      formattedTo = '+' + formattedTo;
+    }
+    
+    let formattedFrom = whatsappPhone.trim().replace(/\s+/g, '');
+    if (!formattedFrom.startsWith('whatsapp:')) {
+      formattedFrom = 'whatsapp:' + formattedFrom;
+    }
+    if (!formattedTo.startsWith('whatsapp:')) {
+      formattedTo = 'whatsapp:' + formattedTo;
+    }
+
+    const auth = Buffer.from(`${accountId}:${apiToken}`).toString('base64');
+    const url = `https://api.twilio.com/2010-04-01/Accounts/${accountId}/Messages.json`;
+
+    const body = new URLSearchParams({
+      From: formattedFrom,
+      To: formattedTo,
+      Body: `[LocalMarket] Your secure verification OTP code is: ${otpCode}. Valid for 10 minutes.`
+    });
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${auth}`,
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: body.toString()
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      return { success: false, message: `Twilio API error (${response.status}): ${errText}` };
+    }
+
+    const resData = await response.json();
+    return { success: true, message: `Twilio WhatsApp sent successfully! SID: ${resData.sid}` };
+  } catch (err: any) {
+    return { success: false, message: `Twilio connection failed: ${err.message}` };
+  }
+}
+
+async function sendMetaWhatsApp(config: any, toPhone: string, otpCode: string): Promise<{ success: boolean; message: string }> {
+  try {
+    const { phoneNumberId, apiToken } = config;
+    if (!phoneNumberId || !apiToken) {
+      return { success: false, message: 'Meta WhatsApp Phone Number ID and Bearer API Token are required.' };
+    }
+
+    let formattedTo = toPhone.trim().replace(/\D/g, ''); 
+
+    const url = `https://graph.facebook.com/v18.0/${phoneNumberId}/messages`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        messaging_product: 'whatsapp',
+        recipient_type: 'individual',
+        to: formattedTo,
+        type: 'text',
+        text: {
+          preview_url: false,
+          body: `[LocalMarket] Your secure verification OTP code is: ${otpCode}. Valid for 10 minutes. Please do not share this code.`
+        }
+      })
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      return { success: false, message: `Meta WhatsApp API error (${response.status}): ${errText}` };
+    }
+
+    const resData = await response.json();
+    return { success: true, message: `WhatsApp Cloud API message sent successfully! Msg ID: ${resData.messages?.[0]?.id || 'unknown'}` };
+  } catch (err: any) {
+    return { success: false, message: `Meta WhatsApp connection failed: ${err.message}` };
+  }
+}
+
+async function sendWhatsAppOtp(toPhone: string, otpCode: string): Promise<{ success: boolean; message: string }> {
+  const integrations = loadIntegrations();
+  if (!integrations.whatsapp || !integrations.whatsapp.enabled) {
+    console.log(`[WhatsApp] WhatsApp OTP dispatch bypassed. Simulated code: ${otpCode}`);
+    return { success: false, message: 'WhatsApp integration is disabled on backend. Simulated in Sandbox mode.' };
+  }
+
+  const { provider } = integrations.whatsapp;
+  if (provider === 'twilio') {
+    return await sendTwilioWhatsApp(integrations.whatsapp, toPhone, otpCode);
+  } else if (provider === 'whatsapp_cloud_api') {
+    return await sendMetaWhatsApp(integrations.whatsapp, toPhone, otpCode);
+  } else {
+    console.log(`[WhatsApp Sandbox] Successfully sent simulated WhatsApp OTP: ${otpCode} to ${toPhone}`);
+    return { success: true, message: 'Simulated WhatsApp OTP dispatched successfully via sandbox.' };
+  }
+}
+
+// Get integrations configuration
+app.post('/api/admin/get-integrations', (req, res) => {
+  const { token } = req.body;
+  if (!token) {
+    return res.status(400).json({ success: false, message: 'Token is required' });
+  }
+
+  const session = verifySessionToken(token);
+  if (!session || session.role !== 'admin') {
+    return res.status(401).json({ success: false, message: 'Invalid token or unauthorized access. Admin role required.' });
+  }
+
+  const config = loadIntegrations();
+  const safeConfig = JSON.parse(JSON.stringify(config));
+  if (safeConfig.gmail.pass) {
+    safeConfig.gmail.pass = '••••••••';
+  }
+  if (safeConfig.whatsapp.apiToken) {
+    safeConfig.whatsapp.apiToken = safeConfig.whatsapp.apiToken.length > 8 
+      ? `${safeConfig.whatsapp.apiToken.slice(0, 4)}...${safeConfig.whatsapp.apiToken.slice(-4)}` 
+      : '••••••••';
+  }
+
+  res.json({
+    success: true,
+    config: safeConfig
+  });
+});
+
+// Save integrations configuration
+app.post('/api/admin/save-integrations', (req, res) => {
+  const { token, config } = req.body;
+  if (!token) {
+    return res.status(400).json({ success: false, message: 'Token is required' });
+  }
+
+  const session = verifySessionToken(token);
+  if (!session || session.role !== 'admin') {
+    return res.status(401).json({ success: false, message: 'Invalid token or unauthorized access. Admin role required.' });
+  }
+
+  if (!config) {
+    return res.status(400).json({ success: false, message: 'Config payload is required' });
+  }
+
+  const current = loadIntegrations();
+  const gmailPass = config.gmail?.pass === '••••••••' ? current.gmail.pass : (config.gmail?.pass || '');
+  
+  let whatsappToken = config.whatsapp?.apiToken || '';
+  if (whatsappToken.includes('...') || whatsappToken === '••••••••') {
+    whatsappToken = current.whatsapp.apiToken;
+  }
+
+  const updated = {
+    gmail: {
+      enabled: !!config.gmail?.enabled,
+      user: config.gmail?.user || '',
+      pass: gmailPass
+    },
+    whatsapp: {
+      enabled: !!config.whatsapp?.enabled,
+      provider: config.whatsapp?.provider || 'sandbox',
+      whatsappPhone: config.whatsapp?.whatsappPhone || '',
+      apiToken: whatsappToken,
+      accountId: config.whatsapp?.accountId || '',
+      phoneNumberId: config.whatsapp?.phoneNumberId || '',
+      sandboxRecipient: config.whatsapp?.sandboxRecipient || ''
+    }
+  };
+
+  saveIntegrations(updated);
+  res.json({
+    success: true,
+    message: 'Integration configurations saved successfully!'
+  });
+});
+
+// Send test email
+app.post('/api/admin/integrations/test-email', async (req, res) => {
+  const { token, testEmail } = req.body;
+  if (!token) {
+    return res.status(400).json({ success: false, message: 'Token is required' });
+  }
+
+  const session = verifySessionToken(token);
+  if (!session || session.role !== 'admin') {
+    return res.status(401).json({ success: false, message: 'Invalid token or unauthorized access. Admin role required.' });
+  }
+
+  if (!testEmail) {
+    return res.status(400).json({ success: false, message: 'Test destination email is required.' });
+  }
+
+  const testOtp = Math.floor(100000 + Math.random() * 900000).toString();
+  const isSent = await sendEmailOtp(testEmail, testOtp);
+
+  if (isSent) {
+    res.json({ success: true, message: `Test OTP email (${testOtp}) dispatched successfully to ${testEmail}!` });
+  } else {
+    res.status(500).json({ success: false, message: 'Failed to send test email. Please check your Gmail user/app password config and try again.' });
+  }
+});
+
+// Send test WhatsApp OTP
+app.post('/api/admin/integrations/test-whatsapp', async (req, res) => {
+  const { token, testPhone } = req.body;
+  if (!token) {
+    return res.status(400).json({ success: false, message: 'Token is required' });
+  }
+
+  const session = verifySessionToken(token);
+  if (!session || session.role !== 'admin') {
+    return res.status(401).json({ success: false, message: 'Invalid token or unauthorized access. Admin role required.' });
+  }
+
+  if (!testPhone) {
+    return res.status(400).json({ success: false, message: 'Test destination phone is required.' });
+  }
+
+  const testOtp = Math.floor(100000 + Math.random() * 900000).toString();
+  const result = await sendWhatsAppOtp(testPhone, testOtp);
+
+  if (result.success) {
+    res.json({ success: true, message: `Test WhatsApp message successfully sent! OTP code: ${testOtp}. Status: ${result.message}` });
+  } else {
+    res.status(500).json({ success: false, message: `Failed to send test WhatsApp OTP: ${result.message}` });
+  }
+});
+
+// Send dynamic Phone/WhatsApp OTP endpoint
+app.post('/api/auth/send-phone-otp', async (req, res) => {
+  const { phone } = req.body;
+  if (!phone) {
+    return res.status(400).json({ success: false, message: 'Phone number is required.' });
+  }
+
+  const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+  pendingOtps.set(phone.trim(), {
+    otp: otpCode,
+    expires: Date.now() + 10 * 60 * 1000
+  });
+
+  const result = await sendWhatsAppOtp(phone, otpCode);
+  res.json({
+    success: true,
+    otp: otpCode,
+    realSmsSent: result.success && !result.message.includes('disabled'),
+    message: result.message
   });
 });
 
