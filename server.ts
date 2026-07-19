@@ -9,6 +9,7 @@ import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI } from '@google/genai';
 import dotenv from 'dotenv';
 import crypto from 'crypto';
+import fs from 'fs';
 
 dotenv.config();
 
@@ -1394,6 +1395,133 @@ Response MUST be a single raw JSON object with these keys. No markdown backticks
     console.error('Gemini ad analysis failed, using fallback:', error);
     res.json(runOfflineAnalysis());
   }
+});
+
+// Branding Configuration Persistence Definitions
+interface WebsiteBranding {
+  name: string;
+  logoUrl: string;
+  copyright: string;
+  poweredBy: string;
+  address: string;
+  socials: {
+    facebook: string;
+    twitter: string;
+    instagram: string;
+    linkedin: string;
+    youtube: string;
+  };
+  themeColor: string;
+  themeCustomColor: string;
+  logoSize: string;
+  logoShape: string;
+  logoFit: string;
+  logoBg: string;
+  lightBgColor: string;
+  darkBgColor: string;
+  showDemoHub: boolean;
+  titleCase: string;
+  lightHeaderColor: string;
+  darkHeaderColor: string;
+  aboutUs: string;
+}
+
+const DEFAULT_BRANDING: WebsiteBranding = {
+  name: 'LocalMarket',
+  logoUrl: '',
+  copyright: '© 2026 LocalMarket Inc.',
+  poweredBy: 'Powered by AI Studio Build',
+  address: '123, Connaught Place, New Delhi, India',
+  socials: {
+    facebook: 'https://facebook.com',
+    twitter: 'https://twitter.com',
+    instagram: 'https://instagram.com',
+    linkedin: 'https://linkedin.com',
+    youtube: 'https://youtube.com',
+  },
+  themeColor: 'blue',
+  themeCustomColor: '#0066FF',
+  logoSize: 'medium',
+  logoShape: 'rounded-xl',
+  logoFit: 'contain',
+  logoBg: 'transparent',
+  lightBgColor: '#f8fafc',
+  darkBgColor: '#030712',
+  showDemoHub: true,
+  titleCase: 'uppercase',
+  lightHeaderColor: '#ffffff',
+  darkHeaderColor: '#111827',
+  aboutUs: `Welcome to LocalMarket, India's premier, security-verified localized trading marketplace.
+
+Our mission is to establish trust in classified buying and selling. By utilizing secure authentication, cryptographically verified user profiles, in-memory real-time communication modules, and real pincode integration across all Indian states and pin zones, we provide a seamless localized peer-to-peer trading hub.
+
+Whether you're a local resident decluttering your home, a professional service agency offering technical assistance, or a local store manager reaching nearby buyers, our secure classified engine makes local commerce smooth, safe, and lightning fast.`,
+};
+
+const BRANDING_FILE_PATH = path.join(process.cwd(), 'website_branding.json');
+
+function loadBranding(): WebsiteBranding {
+  try {
+    if (fs.existsSync(BRANDING_FILE_PATH)) {
+      const data = fs.readFileSync(BRANDING_FILE_PATH, 'utf-8');
+      return { ...DEFAULT_BRANDING, ...JSON.parse(data) };
+    }
+  } catch (err) {
+    console.error('Error loading branding file:', err);
+  }
+  return DEFAULT_BRANDING;
+}
+
+function saveBranding(branding: WebsiteBranding) {
+  try {
+    fs.writeFileSync(BRANDING_FILE_PATH, JSON.stringify(branding, null, 2), 'utf-8');
+  } catch (err) {
+    console.error('Error saving branding file:', err);
+  }
+}
+
+// GET website branding
+app.get('/api/admin/branding', (req, res) => {
+  res.json(loadBranding());
+});
+
+// POST update website branding
+app.post('/api/admin/branding', (req, res) => {
+  const { token, ...brandingData } = req.body;
+  
+  if (token) {
+    const session = verifySessionToken(token);
+    if (!session) {
+      return res.status(401).json({ success: false, message: 'Invalid session token' });
+    }
+    
+    if (session.role !== 'admin' && session.role !== 'moderator') {
+      return res.status(403).json({ success: false, message: 'Unauthorized. Admin or Website Manager role required.' });
+    }
+    
+    if (session.role === 'moderator') {
+      let foundUser: UserAccount | undefined;
+      for (const acc of userAccountsMap.values()) {
+        if (acc.id === session.userId) {
+          foundUser = acc;
+          break;
+        }
+      }
+      if (!foundUser || !foundUser.managerPermissions?.manageBranding) {
+        return res.status(403).json({ success: false, message: 'Unauthorized. Website Manager does not have "manageBranding" permission.' });
+      }
+    }
+  }
+
+  const current = loadBranding();
+  const updated = {
+    ...current,
+    ...brandingData,
+    socials: brandingData.socials ? { ...current.socials, ...brandingData.socials } : current.socials
+  };
+  
+  saveBranding(updated);
+  res.json({ success: true, message: 'Branding saved successfully on backend!', branding: updated });
 });
 
 // Setup Vite Dev Server / Static Asset Serving

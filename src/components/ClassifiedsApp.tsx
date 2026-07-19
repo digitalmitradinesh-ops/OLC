@@ -305,6 +305,48 @@ Whether you're a local resident decluttering your home, a professional service a
   });
 
   useEffect(() => {
+    if (propWebsiteName) {
+      setWebsiteName(propWebsiteName);
+    }
+  }, [propWebsiteName]);
+
+  useEffect(() => {
+    if (propWebsiteLogoUrl !== undefined) {
+      setWebsiteLogoUrl(propWebsiteLogoUrl);
+    }
+  }, [propWebsiteLogoUrl]);
+
+  useEffect(() => {
+    if (propWebsiteCopyright) {
+      setWebsiteCopyright(propWebsiteCopyright);
+    }
+  }, [propWebsiteCopyright]);
+
+  useEffect(() => {
+    if (propWebsitePoweredBy) {
+      setWebsitePoweredBy(propWebsitePoweredBy);
+    }
+  }, [propWebsitePoweredBy]);
+
+  useEffect(() => {
+    if (propWebsiteAddress) {
+      setWebsiteAddress(propWebsiteAddress);
+    }
+  }, [propWebsiteAddress]);
+
+  useEffect(() => {
+    if (propWebsiteThemeColor) {
+      setWebsiteThemeColor(propWebsiteThemeColor);
+    }
+  }, [propWebsiteThemeColor]);
+
+  useEffect(() => {
+    if (propWebsiteThemeCustomColor) {
+      setWebsiteThemeCustomColor(propWebsiteThemeCustomColor);
+    }
+  }, [propWebsiteThemeCustomColor]);
+
+  useEffect(() => {
     if (propWebsiteLogoSize) {
       setWebsiteLogoSize(propWebsiteLogoSize);
     }

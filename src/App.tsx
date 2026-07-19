@@ -128,6 +128,50 @@ export default function App() {
     return localStorage.getItem('website_theme_custom_color') || '#0066FF';
   });
 
+  // Fetch server-persisted global website branding on mount
+  React.useEffect(() => {
+    fetch('/api/admin/branding')
+      .then(res => {
+        if (!res.ok) throw new Error('Failed to fetch branding');
+        return res.json();
+      })
+      .then(data => {
+        if (data && data.name) {
+          setWebsiteName(data.name);
+          setWebsiteLogoUrl(data.logoUrl || '');
+          setWebsiteCopyright(data.copyright || `© 2026 ${data.name} Inc.`);
+          setWebsitePoweredBy(data.poweredBy || 'Powered by AI Studio Build');
+          setWebsiteAddress(data.address || '');
+          if (data.themeColor) setWebsiteThemeColor(data.themeColor);
+          if (data.themeCustomColor) setWebsiteThemeCustomColor(data.themeCustomColor);
+          
+          // Sync with localStorage for synchronous lookups
+          localStorage.setItem('website_name', data.name);
+          localStorage.setItem('website_logo_url', data.logoUrl || '');
+          localStorage.setItem('website_copyright', data.copyright || `© 2026 ${data.name} Inc.`);
+          localStorage.setItem('website_powered_by', data.poweredBy || 'Powered by AI Studio Build');
+          localStorage.setItem('website_address', data.address || '');
+          if (data.themeColor) localStorage.setItem('website_theme_color', data.themeColor);
+          if (data.themeCustomColor) localStorage.setItem('website_theme_custom_color', data.themeCustomColor);
+          if (data.logoSize) localStorage.setItem('website_logo_size', data.logoSize);
+          if (data.logoShape) localStorage.setItem('website_logo_shape', data.logoShape);
+          if (data.logoFit) localStorage.setItem('website_logo_fit', data.logoFit);
+          if (data.logoBg) localStorage.setItem('website_logo_bg', data.logoBg);
+          if (data.lightBgColor) localStorage.setItem('website_light_bg_color', data.lightBgColor);
+          if (data.darkBgColor) localStorage.setItem('website_dark_bg_color', data.darkBgColor);
+          if (data.lightHeaderColor) localStorage.setItem('website_light_header_color', data.lightHeaderColor);
+          if (data.darkHeaderColor) localStorage.setItem('website_dark_header_color', data.darkHeaderColor);
+          if (data.showDemoHub !== undefined) localStorage.setItem('website_show_demo_hub', String(data.showDemoHub));
+          if (data.titleCase) localStorage.setItem('website_title_case', data.titleCase);
+          if (data.aboutUs) localStorage.setItem('website_about_us', data.aboutUs);
+          if (data.socials) localStorage.setItem('website_socials', JSON.stringify(data.socials));
+        }
+      })
+      .catch(err => {
+        console.error('Error fetching global branding:', err);
+      });
+  }, []);
+
   // Dynamically compute custom theme shades based on custom or preset colors
   const themeHexes = useMemo(() => {
     return getThemeHexes(websiteThemeColor, websiteThemeCustomColor);
@@ -225,10 +269,52 @@ export default function App() {
                 setWebsiteAddress(address);
                 if (themeColor) setWebsiteThemeColor(themeColor);
                 if (themeCustomColor) setWebsiteThemeCustomColor(themeCustomColor);
+                
+                // Save locally to localStorage as immediate backup
+                localStorage.setItem('website_name', name);
+                localStorage.setItem('website_logo_url', logoUrl);
+                localStorage.setItem('website_copyright', copyright);
+                localStorage.setItem('website_powered_by', poweredBy);
+                localStorage.setItem('website_address', address);
+                if (themeColor) localStorage.setItem('website_theme_color', themeColor);
+                if (themeCustomColor) localStorage.setItem('website_theme_custom_color', themeCustomColor);
                 if (logoSize) localStorage.setItem('website_logo_size', logoSize);
                 if (logoShape) localStorage.setItem('website_logo_shape', logoShape);
                 if (logoFit) localStorage.setItem('website_logo_fit', logoFit);
                 if (logoBg) localStorage.setItem('website_logo_bg', logoBg);
+                if (socials) localStorage.setItem('website_socials', JSON.stringify(socials));
+
+                // Save globally to the server backend
+                const token = localStorage.getItem('auth_token');
+                fetch('/api/admin/branding', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    token,
+                    name,
+                    logoUrl,
+                    copyright,
+                    poweredBy,
+                    address,
+                    socials,
+                    themeColor,
+                    themeCustomColor,
+                    logoSize,
+                    logoShape,
+                    logoFit,
+                    logoBg
+                  })
+                })
+                .then(res => {
+                  if (!res.ok) throw new Error('Failed to update backend branding');
+                  return res.json();
+                })
+                .then(resData => {
+                  console.log('Branding persisted globally on backend:', resData);
+                })
+                .catch(err => {
+                  console.error('Error persisting global branding:', err);
+                });
               }}
             />
           </div>
