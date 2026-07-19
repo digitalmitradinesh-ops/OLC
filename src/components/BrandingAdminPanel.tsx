@@ -14,7 +14,8 @@ import {
   Linkedin,
   Youtube,
   KeyRound,
-  Lock
+  Lock,
+  Plus
 } from 'lucide-react';
 
 // Color math helpers for generating matching theme backgrounds from brand color
@@ -94,6 +95,7 @@ interface BrandingAdminPanelProps {
   currentShowDemoHub?: boolean;
   currentTitleCase?: string;
   currentAboutUs?: string;
+  currentCarouselImages?: string[];
   onSaveBranding: (
     name: string, 
     logoUrl: string, 
@@ -119,7 +121,8 @@ interface BrandingAdminPanelProps {
     titleCase: string,
     lightHeaderColor: string,
     darkHeaderColor: string,
-    aboutUs: string
+    aboutUs: string,
+    carouselImages: string[]
   ) => void;
   showToast: (msg: string) => void;
 }
@@ -145,6 +148,7 @@ export default function BrandingAdminPanel({
   currentShowDemoHub = true,
   currentTitleCase = 'uppercase',
   currentAboutUs = '',
+  currentCarouselImages = [],
   onSaveBranding,
   showToast
 }: BrandingAdminPanelProps) {
@@ -218,6 +222,13 @@ export default function BrandingAdminPanel({
   const [poweredBy, setPoweredBy] = useState(currentPoweredBy || 'Powered by AI Studio Build');
   const [address, setAddress] = useState(currentAddress || '123, Connaught Place, New Delhi, India');
   const [aboutUs, setAboutUs] = useState(currentAboutUs || '');
+  const [carouselImages, setCarouselImages] = useState<string[]>(currentCarouselImages || []);
+
+  useEffect(() => {
+    if (currentCarouselImages) {
+      setCarouselImages(currentCarouselImages);
+    }
+  }, [currentCarouselImages]);
   
   // Theme selection states
   const [themeColor, setThemeColor] = useState(currentThemeColor);
@@ -392,7 +403,8 @@ export default function BrandingAdminPanel({
       titleCase,
       lightHeaderColor,
       darkHeaderColor,
-      aboutUs.trim()
+      aboutUs.trim(),
+      carouselImages
     );
   };
 
@@ -1061,6 +1073,163 @@ Whether you're a local resident decluttering your home, a professional service a
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* Home Page Image Carousel Customization (Up to 6 Slots) */}
+          <div className="pt-6 border-t border-slate-150 dark:border-slate-800/80 space-y-4">
+            <div>
+              <h3 className="text-sm font-black text-slate-800 dark:text-slate-250 flex items-center gap-2">
+                <ImageIcon className="w-4 h-4 text-blue-500" />
+                <span>Home Page Image Carousel (Up to 6 Slots)</span>
+              </h3>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                Upload custom banners or enter image URLs to rotate through up to 6 high-resolution slides on your marketplace homepage.
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {carouselImages.map((imgUrl, index) => (
+                  <div 
+                    key={index} 
+                    className="p-4 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-3 relative group"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                        Slide Slot #{index + 1}
+                      </span>
+                      <div className="flex items-center gap-1">
+                        {index > 0 && (
+                          <button
+                            type="button"
+                            title="Move Up"
+                            onClick={() => {
+                              const list = [...carouselImages];
+                              const temp = list[index];
+                              list[index] = list[index - 1];
+                              list[index - 1] = temp;
+                              setCarouselImages(list);
+                              showToast('Moved slide slot up!');
+                            }}
+                            className="p-1 px-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-lg text-slate-600 dark:text-slate-300 transition-all cursor-pointer text-[10px] font-bold"
+                          >
+                            ▲
+                          </button>
+                        )}
+                        {index < carouselImages.length - 1 && (
+                          <button
+                            type="button"
+                            title="Move Down"
+                            onClick={() => {
+                              const list = [...carouselImages];
+                              const temp = list[index];
+                              list[index] = list[index + 1];
+                              list[index + 1] = temp;
+                              setCarouselImages(list);
+                              showToast('Moved slide slot down!');
+                            }}
+                            className="p-1 px-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-lg text-slate-600 dark:text-slate-300 transition-all cursor-pointer text-[10px] font-bold"
+                          >
+                            ▼
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const list = carouselImages.filter((_, i) => i !== index);
+                            setCarouselImages(list);
+                            showToast(`Deleted Slide Slot #${index + 1}`);
+                          }}
+                          className="p-1 hover:bg-red-50 dark:hover:bg-red-950/30 text-rose-600 rounded-lg transition-all cursor-pointer"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="w-full h-32 bg-slate-200 dark:bg-slate-900 rounded-xl overflow-hidden relative border border-slate-350 dark:border-slate-800 flex items-center justify-center">
+                      {imgUrl ? (
+                        <img 
+                          src={imgUrl} 
+                          alt={`Carousel Slide ${index + 1}`} 
+                          className="w-full h-full object-cover"
+                          referrerPolicy="no-referrer"
+                        />
+                      ) : (
+                        <div className="text-[10px] text-slate-400 font-semibold flex flex-col items-center gap-1.5">
+                          <ImageIcon className="w-6 h-6 text-slate-350" />
+                          <span>Empty Image URL Slot</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                        Slide Image URL or Local File
+                      </label>
+                      <input
+                        type="text"
+                        value={imgUrl}
+                        onChange={(e) => {
+                          const list = [...carouselImages];
+                          list[index] = e.target.value;
+                          setCarouselImages(list);
+                        }}
+                        placeholder="https://images.unsplash.com/... or upload below"
+                        className="w-full bg-white dark:bg-slate-950 px-3 py-2 border border-slate-200 dark:border-slate-850 rounded-xl text-xs outline-none focus:border-blue-500 transition text-slate-800 dark:text-slate-100 font-mono"
+                      />
+                      
+                      {/* Local File Selector for Slide */}
+                      <div className="flex items-center gap-2 pt-1">
+                        <label className="flex items-center gap-1 px-3 py-1.5 bg-slate-200 hover:bg-slate-350 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-300 rounded-lg text-[10px] font-bold cursor-pointer transition select-none">
+                          <Upload className="w-3 h-3" />
+                          <span>Upload Local Image File</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                const reader = new FileReader();
+                                reader.onload = (event) => {
+                                  const dataUrl = event.target?.result as string;
+                                  const list = [...carouselImages];
+                                  list[index] = dataUrl;
+                                  setCarouselImages(list);
+                                  showToast(`Uploaded image for Slide #${index + 1} successfully!`);
+                                };
+                                reader.readAsDataURL(file);
+                              }
+                            }}
+                          />
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {carouselImages.length < 6 ? (
+                <div className="flex justify-end pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCarouselImages([...carouselImages, '']);
+                      showToast('Added empty slide slot. You can now upload or paste an image URL!');
+                    }}
+                    className="flex items-center gap-1.5 px-4 py-2 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/25 dark:hover:bg-blue-900/40 text-blue-600 dark:text-blue-400 border border-blue-200/50 dark:border-blue-900/30 rounded-xl text-xs font-bold transition cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Add Slide Slot ({carouselImages.length}/6)</span>
+                  </button>
+                </div>
+              ) : (
+                <p className="text-[10px] text-amber-500 font-bold text-right">
+                  Maximum limit of 6 carousel images reached. Delete existing slots to add new ones.
+                </p>
+              )}
             </div>
           </div>
 

@@ -128,6 +128,15 @@ export default function App() {
     return localStorage.getItem('website_theme_custom_color') || '#0066FF';
   });
 
+  const [websiteCarouselImages, setWebsiteCarouselImages] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('website_carousel_images');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
   // Fetch server-persisted global website branding on mount
   React.useEffect(() => {
     fetch('/api/admin/branding')
@@ -144,6 +153,7 @@ export default function App() {
           setWebsiteAddress(data.address || '');
           if (data.themeColor) setWebsiteThemeColor(data.themeColor);
           if (data.themeCustomColor) setWebsiteThemeCustomColor(data.themeCustomColor);
+          if (data.carouselImages) setWebsiteCarouselImages(data.carouselImages);
           
           // Sync with localStorage for synchronous lookups
           localStorage.setItem('website_name', data.name);
@@ -153,6 +163,7 @@ export default function App() {
           localStorage.setItem('website_address', data.address || '');
           if (data.themeColor) localStorage.setItem('website_theme_color', data.themeColor);
           if (data.themeCustomColor) localStorage.setItem('website_theme_custom_color', data.themeCustomColor);
+          if (data.carouselImages) localStorage.setItem('website_carousel_images', JSON.stringify(data.carouselImages));
           if (data.logoSize) localStorage.setItem('website_logo_size', data.logoSize);
           if (data.logoShape) localStorage.setItem('website_logo_shape', data.logoShape);
           if (data.logoFit) localStorage.setItem('website_logo_fit', data.logoFit);
@@ -261,7 +272,8 @@ export default function App() {
               websiteAddress={websiteAddress}
               websiteThemeColor={websiteThemeColor}
               websiteThemeCustomColor={websiteThemeCustomColor}
-              onUpdateBranding={(name, logoUrl, copyright, poweredBy, address, socials, themeColor, themeCustomColor, logoSize, logoShape, logoFit, logoBg) => {
+              websiteCarouselImages={websiteCarouselImages}
+              onUpdateBranding={(name, logoUrl, copyright, poweredBy, address, socials, themeColor, themeCustomColor, logoSize, logoShape, logoFit, logoBg, carouselImages) => {
                 setWebsiteName(name);
                 setWebsiteLogoUrl(logoUrl);
                 setWebsiteCopyright(copyright);
@@ -269,6 +281,7 @@ export default function App() {
                 setWebsiteAddress(address);
                 if (themeColor) setWebsiteThemeColor(themeColor);
                 if (themeCustomColor) setWebsiteThemeCustomColor(themeCustomColor);
+                if (carouselImages) setWebsiteCarouselImages(carouselImages);
                 
                 // Save locally to localStorage as immediate backup
                 localStorage.setItem('website_name', name);
@@ -283,6 +296,7 @@ export default function App() {
                 if (logoFit) localStorage.setItem('website_logo_fit', logoFit);
                 if (logoBg) localStorage.setItem('website_logo_bg', logoBg);
                 if (socials) localStorage.setItem('website_socials', JSON.stringify(socials));
+                if (carouselImages) localStorage.setItem('website_carousel_images', JSON.stringify(carouselImages));
 
                 // Save globally to the server backend
                 const token = localStorage.getItem('auth_token');
@@ -302,7 +316,8 @@ export default function App() {
                     logoSize,
                     logoShape,
                     logoFit,
-                    logoBg
+                    logoBg,
+                    carouselImages
                   })
                 })
                 .then(res => {

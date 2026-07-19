@@ -190,6 +190,7 @@ interface UserAccount {
     manageCategories: boolean;
     manageBranding: boolean;
     viewMetrics: boolean;
+    manageIntegrations?: boolean;
   };
   status?: 'active' | 'suspended';
 }
@@ -258,7 +259,8 @@ const DEFAULT_ACCOUNTS: UserAccount[] = [
       manageListings: true,
       manageCategories: true,
       manageBranding: false,
-      viewMetrics: false
+      viewMetrics: false,
+      manageIntegrations: false
     },
     status: 'active'
   },
@@ -1185,6 +1187,18 @@ async function sendWhatsAppOtp(toPhone: string, otpCode: string): Promise<{ succ
   }
 }
 
+function checkIntegrationsAccess(session: { userId: string; role: string }): boolean {
+  if (session.role === 'admin') return true;
+  if (session.role === 'moderator') {
+    for (const acc of userAccountsMap.values()) {
+      if (acc.id === session.userId) {
+        return !!acc.managerPermissions?.manageIntegrations;
+      }
+    }
+  }
+  return false;
+}
+
 // Get integrations configuration
 app.post('/api/admin/get-integrations', (req, res) => {
   const { token } = req.body;
@@ -1193,8 +1207,8 @@ app.post('/api/admin/get-integrations', (req, res) => {
   }
 
   const session = verifySessionToken(token);
-  if (!session || session.role !== 'admin') {
-    return res.status(401).json({ success: false, message: 'Invalid token or unauthorized access. Admin role required.' });
+  if (!session || !checkIntegrationsAccess(session)) {
+    return res.status(401).json({ success: false, message: 'Invalid token or unauthorized access. Admin or authorized Manager privileges required.' });
   }
 
   const config = loadIntegrations();
@@ -1222,8 +1236,8 @@ app.post('/api/admin/save-integrations', (req, res) => {
   }
 
   const session = verifySessionToken(token);
-  if (!session || session.role !== 'admin') {
-    return res.status(401).json({ success: false, message: 'Invalid token or unauthorized access. Admin role required.' });
+  if (!session || !checkIntegrationsAccess(session)) {
+    return res.status(401).json({ success: false, message: 'Invalid token or unauthorized access. Admin or authorized Manager privileges required.' });
   }
 
   if (!config) {
@@ -1270,8 +1284,8 @@ app.post('/api/admin/integrations/test-email', async (req, res) => {
   }
 
   const session = verifySessionToken(token);
-  if (!session || session.role !== 'admin') {
-    return res.status(401).json({ success: false, message: 'Invalid token or unauthorized access. Admin role required.' });
+  if (!session || !checkIntegrationsAccess(session)) {
+    return res.status(401).json({ success: false, message: 'Invalid token or unauthorized access. Admin or authorized Manager privileges required.' });
   }
 
   if (!testEmail) {
@@ -1296,8 +1310,8 @@ app.post('/api/admin/integrations/test-whatsapp', async (req, res) => {
   }
 
   const session = verifySessionToken(token);
-  if (!session || session.role !== 'admin') {
-    return res.status(401).json({ success: false, message: 'Invalid token or unauthorized access. Admin role required.' });
+  if (!session || !checkIntegrationsAccess(session)) {
+    return res.status(401).json({ success: false, message: 'Invalid token or unauthorized access. Admin or authorized Manager privileges required.' });
   }
 
   if (!testPhone) {
@@ -1382,7 +1396,8 @@ app.post('/api/admin/managers/create', (req, res) => {
     manageListings: true,
     manageCategories: true,
     manageBranding: false,
-    viewMetrics: false
+    viewMetrics: false,
+    manageIntegrations: false
   };
 
   const newManager: UserAccount = {
@@ -1823,6 +1838,7 @@ interface WebsiteBranding {
   lightHeaderColor: string;
   darkHeaderColor: string;
   aboutUs: string;
+  carouselImages?: string[];
 }
 
 const DEFAULT_BRANDING: WebsiteBranding = {
@@ -1831,6 +1847,11 @@ const DEFAULT_BRANDING: WebsiteBranding = {
   copyright: '© 2026 LocalMarket Inc.',
   poweredBy: 'Powered by AI Studio Build',
   address: '123, Connaught Place, New Delhi, India',
+  carouselImages: [
+    'https://images.unsplash.com/photo-1555529669-e69e7aa0ba9a?auto=format&fit=crop&w=1200&q=80',
+    'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=80',
+    'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=1200&q=80'
+  ],
   socials: {
     facebook: 'https://facebook.com',
     twitter: 'https://twitter.com',

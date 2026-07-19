@@ -22,6 +22,7 @@ export interface UserProfile {
     manageCategories: boolean;
     manageBranding: boolean;
     viewMetrics: boolean;
+    manageIntegrations?: boolean;
   };
   status?: 'active' | 'suspended';
 }

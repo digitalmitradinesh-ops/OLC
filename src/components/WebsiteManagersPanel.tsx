@@ -46,6 +46,7 @@ export default function WebsiteManagersPanel({ token }: WebsiteManagersPanelProp
   const [manageCategories, setManageCategories] = useState(true);
   const [manageBranding, setManageBranding] = useState(false);
   const [viewMetrics, setViewMetrics] = useState(false);
+  const [manageIntegrations, setManageIntegrations] = useState(false);
 
   // Edit fields (for selected manager)
   const [editFullName, setEditFullName] = useState('');
@@ -55,6 +56,7 @@ export default function WebsiteManagersPanel({ token }: WebsiteManagersPanelProp
   const [editManageCategories, setEditManageCategories] = useState(false);
   const [editManageBranding, setEditManageBranding] = useState(false);
   const [editViewMetrics, setEditViewMetrics] = useState(false);
+  const [editManageIntegrations, setEditManageIntegrations] = useState(false);
   const [editStatus, setEditStatus] = useState<'active' | 'suspended'>('active');
 
   // Fetch managers on load
@@ -96,6 +98,7 @@ export default function WebsiteManagersPanel({ token }: WebsiteManagersPanelProp
     setManageCategories(true);
     setManageBranding(false);
     setViewMetrics(false);
+    setManageIntegrations(false);
     setIsCreating(false);
   };
 
@@ -124,7 +127,8 @@ export default function WebsiteManagersPanel({ token }: WebsiteManagersPanelProp
             manageListings,
             manageCategories,
             manageBranding,
-            viewMetrics
+            viewMetrics,
+            manageIntegrations
           }
         })
       });
@@ -150,12 +154,14 @@ export default function WebsiteManagersPanel({ token }: WebsiteManagersPanelProp
       manageListings: true,
       manageCategories: true,
       manageBranding: false,
-      viewMetrics: false
+      viewMetrics: false,
+      manageIntegrations: false
     };
     setEditManageListings(perms.manageListings);
     setEditManageCategories(perms.manageCategories);
     setEditManageBranding(perms.manageBranding);
     setEditViewMetrics(perms.viewMetrics);
+    setEditManageIntegrations(!!perms.manageIntegrations);
     setEditStatus(manager.status || 'active');
   };
 
@@ -180,7 +186,8 @@ export default function WebsiteManagersPanel({ token }: WebsiteManagersPanelProp
             manageListings: editManageListings,
             manageCategories: editManageCategories,
             manageBranding: editManageBranding,
-            viewMetrics: editViewMetrics
+            viewMetrics: editViewMetrics,
+            manageIntegrations: editManageIntegrations
           }
         })
       });
@@ -428,6 +435,19 @@ export default function WebsiteManagersPanel({ token }: WebsiteManagersPanelProp
                       <span className="text-[10px] text-slate-500">Provides read-only telemetry reports of registered users, revenue tracking, and security alerts.</span>
                     </div>
                   </label>
+
+                  <label className="flex items-start gap-2.5 p-2 hover:bg-slate-50 rounded-xl cursor-pointer transition">
+                    <input
+                      type="checkbox"
+                      checked={manageIntegrations}
+                      onChange={e => setManageIntegrations(e.target.checked)}
+                      className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 mt-0.5"
+                    />
+                    <div>
+                      <span className="text-xs font-bold text-slate-950 block">Manage OTP & SMTP Integrations</span>
+                      <span className="text-[10px] text-slate-500">Allows managing Gmail SMTP, Twilio SMS/WhatsApp gateways, and Meta permanent bearer tokens.</span>
+                    </div>
+                  </label>
                 </div>
               </div>
 
@@ -591,6 +611,19 @@ export default function WebsiteManagersPanel({ token }: WebsiteManagersPanelProp
                     <div>
                       <span className="text-xs font-bold text-slate-950 block">View Analytics & System Security</span>
                       <span className="text-[10px] text-slate-500">Provides read-only telemetry reports of registered users, revenue tracking, and security alerts.</span>
+                    </div>
+                  </label>
+
+                  <label className="flex items-start gap-2.5 p-2 hover:bg-slate-50 rounded-xl cursor-pointer transition">
+                    <input
+                      type="checkbox"
+                      checked={editManageIntegrations}
+                      onChange={e => setEditManageIntegrations(e.target.checked)}
+                      className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 mt-0.5"
+                    />
+                    <div>
+                      <span className="text-xs font-bold text-slate-950 block">Manage OTP & SMTP Integrations</span>
+                      <span className="text-[10px] text-slate-500">Allows managing Gmail SMTP, Twilio SMS/WhatsApp gateways, and Meta permanent bearer tokens.</span>
                     </div>
                   </label>
                 </div>

@@ -14,6 +14,7 @@ import {
   SlidersHorizontal, 
   Tag, 
   CheckCircle2, 
+  ChevronLeft,
   ChevronRight, 
   Image as ImageIcon, 
   Sparkles, 
@@ -136,6 +137,7 @@ interface ClassifiedsAppProps {
   websiteLogoShape?: string;
   websiteLogoFit?: string;
   websiteLogoBg?: string;
+  websiteCarouselImages?: string[];
   onUpdateBranding?: (
     name: string, 
     logoUrl: string, 
@@ -154,7 +156,8 @@ interface ClassifiedsAppProps {
     logoSize?: string,
     logoShape?: string,
     logoFit?: string,
-    logoBg?: string
+    logoBg?: string,
+    carouselImages?: string[]
   ) => void;
 }
 
@@ -171,6 +174,7 @@ export default function ClassifiedsApp({
   websiteLogoShape: propWebsiteLogoShape = 'rounded-xl',
   websiteLogoFit: propWebsiteLogoFit = 'contain',
   websiteLogoBg: propWebsiteLogoBg = 'transparent',
+  websiteCarouselImages: propWebsiteCarouselImages = [],
   onUpdateBranding
 }: ClassifiedsAppProps = {}) {
   // State
@@ -305,11 +309,29 @@ Whether you're a local resident decluttering your home, a professional service a
     return localStorage.getItem('website_dark_header_color') || '#111827';
   });
 
+  const [websiteCarouselImages, setWebsiteCarouselImages] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('website_carousel_images');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return propWebsiteCarouselImages.length > 0 ? propWebsiteCarouselImages : [
+      'https://images.unsplash.com/photo-1555529669-e69e7aa0ba9a?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=1200&q=80'
+    ];
+  });
+
   useEffect(() => {
     if (propWebsiteName) {
       setWebsiteName(propWebsiteName);
     }
   }, [propWebsiteName]);
+
+  useEffect(() => {
+    if (propWebsiteCarouselImages && propWebsiteCarouselImages.length > 0) {
+      setWebsiteCarouselImages(propWebsiteCarouselImages);
+    }
+  }, [propWebsiteCarouselImages]);
 
   useEffect(() => {
     if (propWebsiteLogoUrl !== undefined) {
@@ -532,6 +554,17 @@ Whether you're a local resident decluttering your home, a professional service a
   const [currentView, setCurrentView] = useState<'buy' | 'sell' | 'chats' | 'dashboard' | 'admin' | 'directory' | 'privacy' | 'about'>('buy');
   const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
   const [selectedChat, setSelectedChat] = useState<Chat | null>(null);
+
+  // Home Carousel active slide index
+  const [activeSlideIndex, setActiveSlideIndex] = useState(0);
+
+  useEffect(() => {
+    if (websiteCarouselImages.length <= 1) return;
+    const interval = setInterval(() => {
+      setActiveSlideIndex(prev => (prev + 1) % websiteCarouselImages.length);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [websiteCarouselImages]);
 
   // Authentication popup gating states
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -909,7 +942,8 @@ Whether you're a local resident decluttering your home, a professional service a
     titleCase: string = 'uppercase',
     lightHeaderColor: string = '#ffffff',
     darkHeaderColor: string = '#111827',
-    aboutUs: string = ''
+    aboutUs: string = '',
+    carouselImages: string[] = []
   ) => {
     setWebsiteName(name);
     setWebsiteLogoUrl(logoUrl);
@@ -930,6 +964,7 @@ Whether you're a local resident decluttering your home, a professional service a
     setWebsiteTitleCase(titleCase);
     setWebsiteLightHeaderColor(lightHeaderColor);
     setWebsiteDarkHeaderColor(darkHeaderColor);
+    setWebsiteCarouselImages(carouselImages);
     localStorage.setItem('website_name', name);
     localStorage.setItem('website_logo_url', logoUrl);
     localStorage.setItem('website_copyright', copyright);
@@ -949,8 +984,9 @@ Whether you're a local resident decluttering your home, a professional service a
     localStorage.setItem('website_dark_header_color', darkHeaderColor);
     localStorage.setItem('website_show_demo_hub', String(showDemoHub));
     localStorage.setItem('website_title_case', titleCase);
+    localStorage.setItem('website_carousel_images', JSON.stringify(carouselImages));
     if (onUpdateBranding) {
-      onUpdateBranding(name, logoUrl, copyright, poweredBy, address, socials, themeColor, themeCustomColor, logoSize, logoShape, logoFit, logoBg);
+      onUpdateBranding(name, logoUrl, copyright, poweredBy, address, socials, themeColor, themeCustomColor, logoSize, logoShape, logoFit, logoBg, carouselImages);
     }
     showToast('Website branding, backgrounds, header colors, custom about-us narrative, custom logo rendering, and theme updated successfully!');
   };
@@ -1986,36 +2022,92 @@ Whether you're a local resident decluttering your home, a professional service a
         {currentView === 'buy' && !selectedListing && (
           <div className="space-y-6 animate-fade-in">
             
-            {/* Top Slider Hero / Sponsors */}
-            <div className="bg-vibrant-gradient rounded-[24px] p-6 md:p-8 text-white relative overflow-hidden shadow-lg">
-              <div className="relative z-10 max-w-lg space-y-3">
-                <span className="px-2.5 py-0.5 bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[10px] font-bold rounded-full uppercase tracking-wider">
-                  Sponsored Premium Slots
-                </span>
-                <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight">
-                  Premium Listings Local Highlights
-                </h2>
-                <p className="text-xs text-slate-300 leading-relaxed">
-                  Browse items from verified local sellers, boosted to priority status for quick transaction. Call or chat instantly.
-                </p>
-                <div className="pt-2 flex flex-wrap gap-2">
-                  {listings.filter(l => l.boostStatus === 'featured').slice(0, 2).map(featured => (
-                    <div 
-                      key={featured.id}
-                      onClick={() => setSelectedListing(featured)}
-                      className="bg-white/10 hover:bg-white/15 cursor-pointer border border-white/10 rounded-xl p-3 flex items-center gap-3 transition"
-                    >
-                      <img src={featured.photos[0]} className="w-10 h-10 object-cover rounded-lg" alt="" />
-                      <div>
-                        <div className="font-semibold text-xs truncate max-w-[150px]">{featured.title}</div>
-                        <div className="text-[10px] text-amber-400 font-bold">₹{featured.price.toLocaleString('en-IN')}</div>
-                      </div>
-                    </div>
-                  ))}
+            {/* Top Interactive Carousel Slider (configurable up to 6 custom images) */}
+            {websiteCarouselImages && websiteCarouselImages.length > 0 && (
+              <div id="home-carousel-slider" className="relative w-full h-[220px] md:h-[300px] rounded-[24px] overflow-hidden shadow-lg bg-slate-900 group">
+                {/* Background Slides */}
+                <div className="absolute inset-0 w-full h-full transition-all duration-700 ease-in-out">
+                  <img 
+                    src={websiteCarouselImages[activeSlideIndex]} 
+                    className="w-full h-full object-cover select-none transition-all duration-700 scale-102 filter brightness-[0.75] dark:brightness-[0.65]" 
+                    alt={`Slide ${activeSlideIndex + 1}`}
+                    referrerPolicy="no-referrer"
+                  />
                 </div>
+
+                {/* Dark Gradient Overlay */}
+                <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/45 to-transparent pointer-events-none"></div>
+
+                {/* Content Overlay */}
+                <div className="absolute inset-y-0 left-0 flex flex-col justify-center p-6 md:p-10 text-white z-10 max-w-xl space-y-2 md:space-y-4">
+                  <span className="px-2.5 py-0.5 bg-blue-500/20 text-blue-400 border border-blue-500/30 text-[10px] font-bold rounded-full uppercase tracking-wider w-fit">
+                    {activeSlideIndex === 0 ? 'Featured Showcase' : activeSlideIndex === 1 ? 'Safe Trading' : 'Exclusive Collection'}
+                  </span>
+                  <h2 className="text-xl md:text-3xl font-extrabold tracking-tight">
+                    {activeSlideIndex === 0 ? 'Discover Premium Local Goods' : activeSlideIndex === 1 ? 'Verified Secure Transactions' : 'Unmatched Real Value Today'}
+                  </h2>
+                  <p className="text-[11px] md:text-xs text-slate-300 leading-relaxed max-w-sm hidden sm:block">
+                    {activeSlideIndex === 0 
+                      ? 'Browse, bid, or buy instantly from handpicked local sellers in your exact postal zone. Safe, fast, and reliable.' 
+                      : activeSlideIndex === 1 
+                      ? 'Every business partner is verified using double-factor authentication. Deal directly without middlemen friction.' 
+                      : 'Upgrade to a gold booster package to get your listing on this top slider carousel with 10x maximum user engagement.'}
+                  </p>
+
+                  <div className="pt-1 flex items-center gap-3">
+                    <button 
+                      onClick={() => handleNavigate('sell')}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-bold rounded-xl text-xs uppercase tracking-wide shadow-md transition cursor-pointer"
+                    >
+                      Start Selling
+                    </button>
+                    <button 
+                      onClick={() => setSelectedCategory('all')}
+                      className="px-4 py-2 bg-white/10 hover:bg-white/20 active:scale-95 text-white border border-white/20 font-bold rounded-xl text-xs uppercase tracking-wide transition cursor-pointer"
+                    >
+                      Explore All
+                    </button>
+                  </div>
+                </div>
+
+                {/* Prev & Next Controls */}
+                {websiteCarouselImages.length > 1 && (
+                  <>
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setActiveSlideIndex(prev => (prev - 1 + websiteCarouselImages.length) % websiteCarouselImages.length);
+                      }}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/30 hover:bg-black/50 border border-white/10 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition duration-300 cursor-pointer focus:outline-none"
+                    >
+                      <ChevronLeft className="w-5 h-5" />
+                    </button>
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setActiveSlideIndex(prev => (prev + 1) % websiteCarouselImages.length);
+                      }}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/30 hover:bg-black/50 border border-white/10 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition duration-300 cursor-pointer focus:outline-none"
+                    >
+                      <ChevronRight className="w-5 h-5" />
+                    </button>
+                  </>
+                )}
+
+                {/* Dot Indicators */}
+                {websiteCarouselImages.length > 1 && (
+                  <div className="absolute bottom-4 right-6 flex items-center gap-1.5 z-20">
+                    {websiteCarouselImages.map((_, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => setActiveSlideIndex(idx)}
+                        className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${activeSlideIndex === idx ? 'bg-blue-500 w-6' : 'bg-white/40 hover:bg-white/60'}`}
+                      ></button>
+                    ))}
+                  </div>
+                )}
               </div>
-              <div className="absolute top-0 right-0 w-80 h-full bg-[radial-gradient(circle_at_right,rgba(59,130,246,0.2),transparent)] pointer-events-none hidden md:block"></div>
-            </div>
+            )}
 
             {/* Sub-Header Categories Selector */}
             <div className="flex items-center gap-6 overflow-x-auto border-b border-slate-200 pb-1 scrollbar-none">
@@ -3698,13 +3790,18 @@ Whether you're a local resident decluttering your home, a professional service a
                   manageListings: true,
                   manageCategories: true,
                   manageBranding: false,
-                  viewMetrics: false
+                  viewMetrics: false,
+                  manageIntegrations: false
                 };
                 if (perms.manageListings) {
                   allowedTabs.push({ id: 'overview', label: 'Overview & Moderation', icon: Sliders });
                 }
-                if (perms.viewMetrics) {
-                  allowedTabs.push({ id: 'metrics', label: 'Analytics & Reports', icon: BarChart3 });
+                if (perms.viewMetrics || perms.manageIntegrations) {
+                  allowedTabs.push({ 
+                    id: 'metrics', 
+                    label: perms.manageIntegrations ? 'Integrations & Analytics' : 'Analytics & Reports', 
+                    icon: BarChart3 
+                  });
                 }
                 if (perms.manageCategories) {
                   allowedTabs.push({ id: 'categories', label: 'Manage Categories', icon: Tag });
@@ -4083,6 +4180,7 @@ Whether you're a local resident decluttering your home, a professional service a
                 currentShowDemoHub={websiteShowDemoHub}
                 currentTitleCase={websiteTitleCase}
                 currentAboutUs={websiteAboutUs}
+                currentCarouselImages={websiteCarouselImages}
                 onSaveBranding={handleSaveBranding}
                 showToast={showToast}
               />
