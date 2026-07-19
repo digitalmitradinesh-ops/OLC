@@ -64,6 +64,7 @@ import { CATEGORIES, INITIAL_LISTINGS, INITIAL_CHATS, INITIAL_MESSAGES, PREMIUM_
 import InteractiveMap from './InteractiveMap';
 import { INDIA_LOCATIONS, INDIA_STATES_DIRECTORY, findLocationByQuery, PincodeRecord } from '../indiaLocations';
 import AuthScreen from './AuthScreen';
+import AuthenticationModal from './AuthenticationModal';
 import UserProfileEditor from './UserProfileEditor';
 import DatabaseSchemaViewer from './DatabaseSchemaViewer';
 import AdminMetricsViewer from './AdminMetricsViewer';
@@ -110,8 +111,8 @@ const getAccountAge = (joinedDateStr: string): string => {
   }
 };
 
-const getSellerProfileObj = (sellerId: string, currentUser: UserProfile): UserProfile | null => {
-  if (sellerId === currentUser.id) return currentUser;
+const getSellerProfileObj = (sellerId: string, currentUser: UserProfile | null): UserProfile | null => {
+  if (currentUser && sellerId === currentUser.id) return currentUser;
   return MOCK_USER_PROFILES.find(p => p.id === sellerId) || null;
 };
 
@@ -488,6 +489,21 @@ Whether you're a local resident decluttering your home, a professional service a
   const [currentView, setCurrentView] = useState<'buy' | 'sell' | 'chats' | 'dashboard' | 'admin' | 'directory' | 'privacy' | 'about'>('buy');
   const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
   const [selectedChat, setSelectedChat] = useState<Chat | null>(null);
+
+  // Authentication popup gating states
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [pendingView, setPendingView] = useState<'buy' | 'sell' | 'chats' | 'dashboard' | 'admin' | 'directory' | 'privacy' | 'about' | null>(null);
+  const [pendingChatListing, setPendingChatListing] = useState<Listing | null>(null);
+
+  const handleNavigate = (view: 'buy' | 'sell' | 'chats' | 'dashboard' | 'admin' | 'directory' | 'privacy' | 'about') => {
+    setSelectedListing(null);
+    if (!currentUser && ['sell', 'chats', 'dashboard', 'admin'].includes(view)) {
+      setPendingView(view);
+      setShowAuthModal(true);
+      return;
+    }
+    setCurrentView(view);
+  };
 
   // Search & Filter state
   const [searchQuery, setSearchQuery] = useState('');
@@ -1158,6 +1174,13 @@ Whether you're a local resident decluttering your home, a professional service a
 
   // Contact Seller / Create Chat
   const startChat = (listing: Listing) => {
+    if (!currentUser) {
+      setPendingView('chats');
+      setPendingChatListing(listing);
+      setShowAuthModal(true);
+      return;
+    }
+
     if (listing.sellerId === currentUser.id) {
       showToast('You cannot chat with yourself!');
       return;
@@ -1535,20 +1558,7 @@ Whether you're a local resident decluttering your home, a professional service a
     );
   }
 
-  if (!currentUser) {
-    return (
-      <AuthScreen 
-        onLoginSuccess={(user, tokenVal) => {
-          localStorage.setItem('auth_token', tokenVal);
-          setToken(tokenVal);
-          setCurrentUser(user);
-        }} 
-        isDarkMode={isDarkMode}
-        setIsDarkMode={setIsDarkMode}
-        showDemoHubSetting={websiteShowDemoHub}
-      />
-    );
-  }
+
 
   return (
     <div className="min-h-screen custom-dynamic-bg bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 flex flex-col font-sans transition-colors duration-300">
@@ -1828,21 +1838,6 @@ Whether you're a local resident decluttering your home, a professional service a
 
         {/* Action Controls */}
         <div className="flex items-center gap-3">
-          {/* Authenticated User Session Info & Logout */}
-
-          <button
-            onClick={() => {
-              localStorage.removeItem('auth_token');
-              setToken(null);
-              setCurrentUser(null);
-              showToast("Logged out of secure session successfully.");
-            }}
-            title="Secure Logout"
-            className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50/50 dark:hover:bg-rose-950/20 rounded-xl cursor-pointer transition-all border border-transparent hover:border-rose-100 shrink-0"
-          >
-            <LogOut className="w-4.5 h-4.5" />
-          </button>
-
           <button
             onClick={() => setIsDarkMode(!isDarkMode)}
             title="Toggle Dark Mode"
@@ -1852,14 +1847,14 @@ Whether you're a local resident decluttering your home, a professional service a
           </button>
 
           <button 
-            onClick={() => { setSelectedListing(null); setCurrentView('buy'); }}
+            onClick={() => handleNavigate('buy')}
             className={`px-3.5 py-2 rounded-xl text-xs font-bold cursor-pointer transition-all ${currentView === 'buy' ? 'bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-350 hover:bg-slate-50 dark:hover:bg-slate-800/60'}`}
           >
             Buyer
           </button>
           
           <button 
-            onClick={() => setCurrentView('chats')}
+            onClick={() => handleNavigate('chats')}
             className={`relative p-2 rounded-xl cursor-pointer transition-all ${currentView === 'chats' ? 'bg-blue-50 text-blue-600' : 'text-slate-600 hover:bg-slate-50'}`}
           >
             <MessageSquare className="w-5 h-5" />
@@ -1873,14 +1868,14 @@ Whether you're a local resident decluttering your home, a professional service a
           {/* Admin panel controls shifted to footer */}
 
           <button 
-            onClick={() => setCurrentView('dashboard')}
+            onClick={() => handleNavigate('dashboard')}
             className={`px-3.5 py-2 rounded-xl text-xs font-bold cursor-pointer transition-all ${currentView === 'dashboard' ? 'bg-blue-50 text-blue-600' : 'text-slate-600 hover:bg-slate-50'}`}
           >
             Seller
           </button>
 
           <button 
-            onClick={() => { setSelectedListing(null); setCurrentView('directory'); }}
+            onClick={() => handleNavigate('directory')}
             className={`px-3.5 py-2 rounded-xl text-xs font-bold cursor-pointer transition-all ${currentView === 'directory' ? 'bg-blue-50 text-blue-600' : 'text-slate-600 hover:bg-slate-50'}`}
           >
             Pincode Directory
@@ -1888,12 +1883,56 @@ Whether you're a local resident decluttering your home, a professional service a
 
           {/* Post Ad CTA */}
           <button 
-            onClick={() => setCurrentView('sell')}
+            onClick={() => handleNavigate('sell')}
             className="flex items-center gap-1.5 px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-full text-xs transition-all shadow-[0_4px_12px_rgba(0,102,255,0.2)] hover:shadow-[0_6px_16px_rgba(0,102,255,0.3)] cursor-pointer active:scale-95"
           >
             <Plus className="w-4 h-4" />
             <span>POST AD</span>
           </button>
+
+          {/* Login/Logout user session at extreme right corner with a subtle left divider */}
+          {currentUser ? (
+            <div className="flex items-center gap-2 border-l border-slate-200 dark:border-slate-800 pl-3 ml-1">
+              <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-400 font-bold text-xs flex items-center justify-center border border-blue-200 dark:border-blue-800 shrink-0">
+                {currentUser.profilePhotoUrl || currentUser.avatarUrl ? (
+                  <img src={currentUser.profilePhotoUrl || currentUser.avatarUrl} alt={currentUser.fullName} className="w-full h-full rounded-full object-cover" referrerPolicy="no-referrer" />
+                ) : (
+                  currentUser.fullName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+                )}
+              </div>
+              <div className="hidden md:block text-left shrink-0 max-w-[100px]">
+                <div className="text-[10px] font-black leading-none text-slate-800 dark:text-slate-200 truncate">{currentUser.fullName}</div>
+                <div className="text-[8px] font-bold leading-none text-slate-400 uppercase tracking-wider mt-0.5 truncate">{currentUser.role}</div>
+              </div>
+
+              <button
+                onClick={() => {
+                  localStorage.removeItem('auth_token');
+                  setToken(null);
+                  setCurrentUser(null);
+                  setCurrentView('buy');
+                  showToast("Logged out of secure session successfully.");
+                }}
+                title="Secure Logout"
+                className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50/50 dark:hover:bg-rose-950/20 rounded-xl cursor-pointer transition-all border border-transparent hover:border-rose-100 shrink-0 ml-1"
+              >
+                <LogOut className="w-4.5 h-4.5" />
+              </button>
+            </div>
+          ) : (
+            <div className="border-l border-slate-200 dark:border-slate-800 pl-3 ml-1 shrink-0">
+              <button
+                onClick={() => {
+                  setPendingView(null);
+                  setShowAuthModal(true);
+                }}
+                className="flex items-center gap-1.5 px-3.5 py-2 border border-blue-600/30 text-blue-600 dark:text-blue-400 hover:bg-blue-50/60 dark:hover:bg-blue-950/20 font-bold rounded-xl text-xs transition cursor-pointer shrink-0"
+              >
+                <User className="w-3.5 h-3.5" />
+                <span>Login</span>
+              </button>
+            </div>
+          )}
         </div>
       </header>
 
@@ -4614,22 +4653,22 @@ Whether you're a local resident decluttering your home, a professional service a
               <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">Quick Navigation</h4>
               <ul className="space-y-2 text-xs font-semibold text-slate-500 dark:text-slate-400">
                 <li>
-                  <button onClick={() => { setSelectedListing(null); setCurrentView('buy'); }} className="hover:text-blue-600 dark:hover:text-blue-400 transition cursor-pointer">
+                  <button onClick={() => handleNavigate('buy')} className="hover:text-blue-600 dark:hover:text-blue-400 transition cursor-pointer">
                     Browse Classifieds Listings
                   </button>
                 </li>
                 <li>
-                  <button onClick={() => { setSelectedListing(null); setCurrentView('sell'); }} className="hover:text-blue-600 dark:hover:text-blue-400 transition cursor-pointer">
+                  <button onClick={() => handleNavigate('sell')} className="hover:text-blue-600 dark:hover:text-blue-400 transition cursor-pointer">
                     Post a Free Advertisement
                   </button>
                 </li>
                 <li>
-                  <button onClick={() => { setSelectedListing(null); setCurrentView('chats'); }} className="hover:text-blue-600 dark:hover:text-blue-400 transition cursor-pointer">
+                  <button onClick={() => handleNavigate('chats')} className="hover:text-blue-600 dark:hover:text-blue-400 transition cursor-pointer">
                     Live Seller Chatbox
                   </button>
                 </li>
                 <li>
-                  <button onClick={() => { setSelectedListing(null); setCurrentView('admin'); }} className="hover:text-blue-600 dark:hover:text-blue-400 transition cursor-pointer">
+                  <button onClick={() => handleNavigate('admin')} className="hover:text-blue-600 dark:hover:text-blue-400 transition cursor-pointer">
                     {currentUser?.role === 'admin' ? 'Administrator Controls' : 'Administrator Control Panel'}
                   </button>
                 </li>
@@ -4639,7 +4678,7 @@ Whether you're a local resident decluttering your home, a professional service a
                   </button>
                 </li>
                 <li>
-                  <button onClick={() => { setSelectedListing(null); setCurrentView('about'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="hover:text-blue-600 dark:hover:text-blue-400 transition cursor-pointer text-blue-600 dark:text-blue-400 font-bold">
+                  <button onClick={() => { setSelectedListing(null); setCurrentView('about'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="hover:text-blue-600 dark:hover:text-blue-400 transition cursor-pointer text-blue-600 dark:text-blue-400 font-normal">
                     About Us
                   </button>
                 </li>
@@ -4842,6 +4881,38 @@ Whether you're a local resident decluttering your home, a professional service a
           </div>
         </div>
       )}
+
+      {/* Authentication Modal Popup */}
+      <AuthenticationModal
+        isOpen={showAuthModal}
+        onClose={() => {
+          setShowAuthModal(false);
+          setPendingView(null);
+          setPendingChatListing(null);
+        }}
+        websiteName={websiteName}
+        isDarkMode={isDarkMode}
+        onLoginSuccess={(user, tokenVal) => {
+          localStorage.setItem('auth_token', tokenVal);
+          setToken(tokenVal);
+          setCurrentUser(user);
+          showToast(`Welcome back, ${user.fullName}!`);
+          
+          // Execute pending navigation if any
+          if (pendingView) {
+            setCurrentView(pendingView);
+            setPendingView(null);
+          }
+          // Execute pending chat initiation if any
+          if (pendingChatListing) {
+            // we call startChat with a slight timeout to ensure state is updated
+            setTimeout(() => {
+              startChat(pendingChatListing);
+              setPendingChatListing(null);
+            }, 50);
+          }
+        }}
+      />
 
     </div>
   );

@@ -27,9 +27,18 @@ interface AuthScreenProps {
   isDarkMode?: boolean;
   setIsDarkMode?: (dark: boolean) => void;
   showDemoHubSetting?: boolean;
+  isPopup?: boolean;
+  onBackToCarousel?: () => void;
 }
 
-export default function AuthScreen({ onLoginSuccess, isDarkMode = false, setIsDarkMode, showDemoHubSetting = true }: AuthScreenProps) {
+export default function AuthScreen({ 
+  onLoginSuccess, 
+  isDarkMode = false, 
+  setIsDarkMode, 
+  showDemoHubSetting = true,
+  isPopup = false,
+  onBackToCarousel
+}: AuthScreenProps) {
   const [activeTab, setActiveTab] = useState<'login' | 'register' | 'forgot_password'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -327,6 +336,392 @@ export default function AuthScreen({ onLoginSuccess, isDarkMode = false, setIsDa
       setLoading(false);
     }
   };
+
+  if (isPopup) {
+    return (
+      <div className="w-full max-h-[85vh] overflow-y-auto p-2 sm:p-4 text-left font-sans">
+        {onBackToCarousel && (
+          <button 
+            type="button"
+            onClick={onBackToCarousel} 
+            className="flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-slate-800 dark:text-slate-455 dark:hover:text-slate-200 cursor-pointer mb-4 transition-colors border-none bg-transparent outline-none"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Back to login options</span>
+          </button>
+        )}
+
+        {/* Form controls div content */}
+        <div className="space-y-5">
+          {/* Header Title & Switcher */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b pb-4 border-slate-100 dark:border-slate-800">
+            <div>
+              <h2 className="text-base font-black text-slate-800 dark:text-slate-100 tracking-tight">
+                {activeTab === 'login' ? 'Secure Authenticated Access' : activeTab === 'forgot_password' ? 'Forgot / Recover Password' : 'Create High-Security Account'}
+              </h2>
+              <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1">
+                {activeTab === 'login' ? 'Sign in with your hashed account credentials' : activeTab === 'forgot_password' ? 'Authenticate identity with verification code' : 'Register to verify your active role'}
+              </p>
+            </div>
+            
+            <div className="flex items-center gap-2 shrink-0">
+              <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200/50 dark:border-slate-700/50">
+                <button 
+                  type="button"
+                  onClick={() => { setActiveTab('login'); setErrorMsg(null); }}
+                  className={`px-3 py-1 rounded-lg text-[10.5px] font-black transition-all cursor-pointer ${activeTab === 'login' ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                >
+                  Sign In
+                </button>
+                <button 
+                  type="button"
+                  onClick={() => { setActiveTab('register'); setErrorMsg(null); }}
+                  className={`px-3 py-1 rounded-lg text-[10.5px] font-black transition-all cursor-pointer ${activeTab === 'register' ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                >
+                  Register
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Feedback alerts */}
+          {errorMsg && (
+            <div className="bg-rose-50 border border-rose-200 text-rose-800 p-3 rounded-xl flex items-start gap-2.5 text-xs animate-fade-in">
+              <AlertCircle className="w-4.5 h-4.5 text-rose-500 shrink-0 mt-0.5" />
+              <div>
+                <span className="font-bold">Security Alert:</span> {errorMsg}
+              </div>
+            </div>
+          )}
+
+          {successMsg && (
+            <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 p-3 rounded-xl flex items-start gap-2.5 text-xs animate-fade-in">
+              <CheckCircle className="w-4.5 h-4.5 text-emerald-500 shrink-0 mt-0.5" />
+              <div>
+                <span className="font-bold">Access Granted:</span> {successMsg}
+              </div>
+            </div>
+          )}
+
+          {/* Form Switchboard */}
+          {activeTab === 'login' ? (
+            <form onSubmit={handleLoginSubmit} className="space-y-4">
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">Email Address</label>
+                <div className="relative flex items-center">
+                  <Mail className="absolute left-3 w-4.5 h-4.5 text-slate-400" />
+                  <input 
+                    type="email" 
+                    required
+                    placeholder="you@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full bg-slate-50 hover:bg-slate-100/70 focus:bg-white dark:bg-slate-800 dark:hover:bg-slate-800/80 dark:focus:bg-slate-900 pl-10 pr-4 py-2 border border-slate-200 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-500 rounded-xl text-xs outline-none transition font-semibold text-slate-800 dark:text-slate-100"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <div className="flex justify-between items-center">
+                  <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">Password</label>
+                  <button 
+                    type="button" 
+                    onClick={() => { setActiveTab('forgot_password'); setErrorMsg(null); }}
+                    className="text-[10px] text-blue-600 hover:underline font-bold bg-transparent border-none outline-none cursor-pointer"
+                  >
+                    Forgot Password?
+                  </button>
+                </div>
+                <div className="relative flex items-center">
+                  <Lock className="absolute left-3 w-4.5 h-4.5 text-slate-400" />
+                  <input 
+                    type={showPassword ? 'text' : 'password'} 
+                    required
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full bg-slate-50 hover:bg-slate-100/70 focus:bg-white dark:bg-slate-800 dark:hover:bg-slate-800/80 dark:focus:bg-slate-900 pl-10 pr-10 py-2 border border-slate-200 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-500 rounded-xl text-xs outline-none transition font-semibold text-slate-800 dark:text-slate-100"
+                  />
+                  <button 
+                    type="button" 
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 bg-transparent border-none outline-none cursor-pointer"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Bot-prevention math challenge captcha if needed */}
+              {!isCaptchaVerified && (
+                <div className="p-3 bg-blue-50/40 dark:bg-blue-950/20 rounded-xl border border-blue-100 dark:border-blue-900/40 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black text-blue-800 dark:text-blue-300 uppercase tracking-wider">Platform Security Verification</span>
+                    <span className="text-[9px] text-slate-400 dark:text-slate-500 font-mono">CAPTCHA Challenge</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-lg font-mono text-xs font-black text-slate-700 dark:text-slate-300 tracking-widest select-none border border-slate-200 dark:border-slate-700">
+                      {captchaNum1} + {captchaNum2} = ?
+                    </div>
+                    <input 
+                      type="number"
+                      required
+                      placeholder="Answer"
+                      value={captchaUserAnswer}
+                      onChange={(e) => {
+                        setCaptchaUserAnswer(e.target.value);
+                        setCaptchaError(false);
+                      }}
+                      className={`flex-1 bg-white dark:bg-slate-900 px-3 py-1.5 border ${captchaError ? 'border-rose-500' : 'border-slate-200 dark:border-slate-700'} focus:border-blue-500 rounded-lg text-xs outline-none font-semibold text-slate-800 dark:text-slate-100`}
+                    />
+                  </div>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-300 dark:disabled:bg-slate-800 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition shadow-sm cursor-pointer"
+              >
+                {loading ? 'Decrypting Access Token...' : 'Establish Secure Session'}
+              </button>
+            </form>
+          ) : activeTab === 'register' ? (
+            <form onSubmit={handleRegisterSubmit} className="space-y-4 max-h-[40vh] overflow-y-auto pr-1">
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">Full Name *</label>
+                <div className="relative flex items-center">
+                  <User className="absolute left-3 w-4.5 h-4.5 text-slate-400" />
+                  <input 
+                    type="text" 
+                    required
+                    placeholder="eg. Ramesh Kumar"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    className="w-full bg-slate-50 hover:bg-slate-100/70 focus:bg-white dark:bg-slate-800 dark:hover:bg-slate-800/80 dark:focus:bg-slate-900 pl-10 pr-4 py-2 border border-slate-200 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-500 rounded-xl text-xs outline-none transition font-semibold text-slate-800 dark:text-slate-100"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">Email Address *</label>
+                  <div className="relative flex items-center">
+                    <Mail className="absolute left-3 w-4.5 h-4.5 text-slate-400" />
+                    <input 
+                      type="email" 
+                      required
+                      placeholder="you@example.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="w-full bg-slate-50 hover:bg-slate-100/70 focus:bg-white dark:bg-slate-800 dark:hover:bg-slate-800/80 dark:focus:bg-slate-900 pl-10 pr-4 py-2 border border-slate-200 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-500 rounded-xl text-xs outline-none transition font-semibold text-slate-800 dark:text-slate-100"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">Password *</label>
+                  <div className="relative flex items-center">
+                    <Lock className="absolute left-3 w-4.5 h-4.5 text-slate-400" />
+                    <input 
+                      type={showPassword ? 'text' : 'password'} 
+                      required
+                      placeholder="At least 6 chars"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="w-full bg-slate-50 hover:bg-slate-100/70 focus:bg-white dark:bg-slate-800 dark:hover:bg-slate-800/80 dark:focus:bg-slate-900 pl-10 pr-10 py-2 border border-slate-200 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-500 rounded-xl text-xs outline-none transition font-semibold text-slate-800 dark:text-slate-100"
+                    />
+                    <button 
+                      type="button" 
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 bg-transparent border-none outline-none cursor-pointer"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">Mobile Number</label>
+                  <div className="relative flex items-center">
+                    <Phone className="absolute left-3 w-4.5 h-4.5 text-slate-400" />
+                    <input 
+                      type="tel" 
+                      placeholder="+91 XXXXX XXXXX"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      className="w-full bg-slate-50 hover:bg-slate-100/70 focus:bg-white dark:bg-slate-800 dark:hover:bg-slate-800/80 dark:focus:bg-slate-900 pl-10 pr-4 py-2 border border-slate-200 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-500 rounded-xl text-xs outline-none transition font-semibold text-slate-800 dark:text-slate-100"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">State / Region</label>
+                  <div className="relative flex items-center">
+                    <MapPin className="absolute left-3 w-4.5 h-4.5 text-slate-400" />
+                    <input 
+                      type="text" 
+                      placeholder="eg. New Delhi"
+                      value={location}
+                      onChange={(e) => setLocation(e.target.value)}
+                      className="w-full bg-slate-50 hover:bg-slate-100/70 focus:bg-white dark:bg-slate-800 dark:hover:bg-slate-800/80 dark:focus:bg-slate-900 pl-10 pr-4 py-2 border border-slate-200 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-500 rounded-xl text-xs outline-none transition font-semibold text-slate-800 dark:text-slate-100"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">Select Account Access Role</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <div 
+                    onClick={() => setRole('buyer')}
+                    className={`p-3 border-2 rounded-xl cursor-pointer text-center transition ${role === 'buyer' ? 'border-blue-600 bg-blue-50/40 dark:bg-blue-950/20' : 'border-slate-150 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/55'}`}
+                  >
+                    <span className="block text-xs font-black text-slate-800 dark:text-slate-200">Buyer</span>
+                    <span className="text-[9px] text-slate-400 dark:text-slate-500">I want to discover & trade</span>
+                  </div>
+
+                  <div 
+                    onClick={() => setRole('seller')}
+                    className={`p-3 border-2 rounded-xl cursor-pointer text-center transition ${role === 'seller' ? 'border-blue-600 bg-blue-50/40 dark:bg-blue-950/20' : 'border-slate-150 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/55'}`}
+                  >
+                    <span className="block text-xs font-black text-slate-800 dark:text-slate-200">Seller</span>
+                    <span className="text-[9px] text-slate-400 dark:text-slate-500">I want to post ads</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-3 bg-blue-50/40 dark:bg-blue-950/20 rounded-xl border border-blue-100 dark:border-blue-900/40 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black text-blue-800 dark:text-blue-300 uppercase tracking-wider font-mono">Solve Security Check *</span>
+                  <span className="text-[10px] bg-blue-100 text-blue-800 px-1.5 py-0.2 rounded font-bold">{captchaNum1} + {captchaNum2} = ?</span>
+                </div>
+                <input 
+                  type="number"
+                  required
+                  placeholder="Answer math verification"
+                  value={captchaUserAnswer}
+                  onChange={(e) => setCaptchaUserAnswer(e.target.value)}
+                  className="w-full bg-white dark:bg-slate-900 px-3 py-2 border border-slate-200 dark:border-slate-700 focus:border-blue-500 rounded-xl text-xs outline-none font-semibold text-slate-800 dark:text-slate-100"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-300 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition shadow-sm cursor-pointer"
+              >
+                {loading ? 'Registering Secure Profile...' : 'Create Secure Profile Account'}
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={forgotStep === 1 ? handleForgotPasswordRequest : handleResetPasswordSubmit} className="space-y-4">
+              {forgotStep === 1 ? (
+                <>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">Account Email Identifier</label>
+                    <div className="relative flex items-center">
+                      <Mail className="absolute left-3 w-4.5 h-4.5 text-slate-400" />
+                      <input 
+                        type="email" 
+                        required
+                        placeholder="you@example.com"
+                        value={forgotIdentifier}
+                        onChange={(e) => setForgotIdentifier(e.target.value)}
+                        className="w-full bg-slate-50 pl-10 pr-4 py-2 border border-slate-200 dark:border-slate-700 focus:border-blue-500 rounded-xl text-xs outline-none font-semibold"
+                      />
+                    </div>
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-300 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition cursor-pointer"
+                  >
+                    {loading ? 'Request Reset OTP' : 'Request Reset OTP'}
+                  </button>
+                </>
+              ) : (
+                <div className="space-y-4">
+                  <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 font-medium">
+                    <span className="font-bold">Sandbox Action Bypass:</span> We have simulated sending a verification code. Input <span className="font-mono font-black text-amber-950 bg-amber-100 px-1 py-0.5 rounded">{receivedOtpSimulated}</span> below to authorize the password overwrite.
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">Enter OTP Code</label>
+                      <input 
+                        type="text" 
+                        required
+                        placeholder="eg. 839102"
+                        value={forgotOtp}
+                        onChange={(e) => setForgotOtp(e.target.value)}
+                        className="w-full bg-slate-50 px-3 py-2 border border-slate-200 dark:border-slate-700 focus:border-blue-500 rounded-xl text-xs outline-none font-semibold font-mono"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">New Password</label>
+                      <input 
+                        type="password" 
+                        required
+                        placeholder="Min 6 characters"
+                        value={forgotNewPassword}
+                        onChange={(e) => setForgotNewPassword(e.target.value)}
+                        className="w-full bg-slate-50 px-3 py-2 border border-slate-200 dark:border-slate-700 focus:border-blue-500 rounded-xl text-xs outline-none font-semibold"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-300 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition cursor-pointer"
+                  >
+                    {loading ? 'Overwriting Password Hash...' : 'Overwrite Secure Password'}
+                  </button>
+                </div>
+              )}
+            </form>
+          )}
+
+          {/* Quick Demo Identities selection */}
+          {showDemoHubSetting && showDemoLogins && (
+            <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Sandbox Demo Bypass Credentials</span>
+                <span className="text-[9px] bg-slate-100 dark:bg-slate-800 text-slate-500 px-1.5 py-0.2 rounded font-bold font-mono">Click to Auto-fill</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div 
+                  onClick={() => handleDemoLoginFill('admin@example.com', 'Admin@123')}
+                  className="p-2 border border-blue-100 bg-blue-50/50 hover:bg-blue-50 rounded-xl cursor-pointer transition flex flex-col justify-between"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-extrabold text-blue-950 text-[10.5px]">Dinesh Kumar</span>
+                    <span className="text-[8px] bg-blue-100 text-blue-800 font-black px-1 py-0.5 rounded uppercase">Admin</span>
+                  </div>
+                  <span className="text-[9px] text-slate-400 font-semibold font-mono mt-1">Admin@123</span>
+                </div>
+
+                <div 
+                  onClick={() => handleDemoLoginFill('sarah@example.com', 'Sarah@123')}
+                  className="p-2 border border-emerald-100 bg-emerald-50/50 hover:bg-emerald-50 rounded-xl cursor-pointer transition flex flex-col justify-between"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-extrabold text-emerald-950 text-[10.5px]">Sarah Connor</span>
+                    <span className="text-[8px] bg-emerald-100 text-emerald-800 font-black px-1 py-0.5 rounded uppercase">Seller</span>
+                  </div>
+                  <span className="text-[9px] text-slate-400 font-semibold font-mono mt-1">Sarah@123</span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center p-4 md:p-8 font-sans transition-colors duration-300">
