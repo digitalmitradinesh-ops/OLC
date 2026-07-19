@@ -49,6 +49,7 @@ export default function WebsiteManagersPanel({ token }: WebsiteManagersPanelProp
   const [manageIntegrations, setManageIntegrations] = useState(false);
 
   // Edit fields (for selected manager)
+  const [editEmail, setEditEmail] = useState('');
   const [editFullName, setEditFullName] = useState('');
   const [editPhone, setEditPhone] = useState('');
   const [editLocation, setEditLocation] = useState('');
@@ -147,6 +148,7 @@ export default function WebsiteManagersPanel({ token }: WebsiteManagersPanelProp
 
   const handleStartEdit = (manager: UserProfile) => {
     setEditingManager(manager);
+    setEditEmail(manager.email);
     setEditFullName(manager.fullName);
     setEditPhone(manager.phone);
     setEditLocation(manager.location || '');
@@ -178,6 +180,7 @@ export default function WebsiteManagersPanel({ token }: WebsiteManagersPanelProp
         body: JSON.stringify({
           token,
           id: editingManager.id,
+          email: editEmail,
           fullName: editFullName,
           phone: editPhone,
           location: editLocation,
@@ -471,13 +474,18 @@ export default function WebsiteManagersPanel({ token }: WebsiteManagersPanelProp
             <form onSubmit={handleUpdateManager} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-[11px] font-black uppercase text-slate-500 tracking-wider">Email (Immutable)</label>
-                  <input
-                    type="text"
-                    disabled
-                    value={editingManager?.email}
-                    className="w-full px-4 py-2.5 text-xs bg-slate-100 border border-slate-200 rounded-xl text-slate-500 outline-none cursor-not-allowed"
-                  />
+                  <label className="text-[11px] font-black uppercase text-slate-500 tracking-wider">Email Address *</label>
+                  <div className="relative">
+                    <Mail className="w-4 h-4 absolute left-3.5 top-3.5 text-slate-400" />
+                    <input
+                      type="email"
+                      required
+                      value={editEmail}
+                      onChange={e => setEditEmail(e.target.value)}
+                      placeholder="manager@example.com"
+                      className="w-full pl-10 pr-4 py-2.5 text-xs bg-white border border-slate-200 rounded-xl focus:border-blue-500 focus:ring-1 focus:ring-blue-500/50 transition outline-none text-slate-900"
+                    />
+                  </div>
                 </div>
 
                 <div className="space-y-1.5">

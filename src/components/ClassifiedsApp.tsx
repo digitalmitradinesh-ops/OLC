@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Search, 
   MapPin, 
@@ -58,8 +58,13 @@ import {
   Twitter,
   Instagram,
   Linkedin,
-  Youtube
+  Youtube,
+  Bell,
+  BellRing,
+  Volume2,
+  VolumeX
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { Listing, Category, Chat, Message, PremiumPlan, UserProfile } from '../types';
 import { CATEGORIES, INITIAL_LISTINGS, INITIAL_CHATS, INITIAL_MESSAGES, PREMIUM_PLANS, CURRENT_USER, MOCK_USER_PROFILES } from '../data';
 import InteractiveMap from './InteractiveMap';
@@ -193,6 +198,26 @@ export default function ClassifiedsApp({
     const saved = localStorage.getItem('local_messages');
     return saved ? JSON.parse(saved) : INITIAL_MESSAGES;
   });
+
+  // Simulated notification system states
+  const [inAppNotifications, setInAppNotifications] = useState<{
+    id: string;
+    chatId: string;
+    senderName: string;
+    listingTitle: string;
+    listingPhoto?: string;
+    text: string;
+    timestamp: string;
+  }[]>([]);
+  const [simulationEnabled, setSimulationEnabled] = useState<boolean>(() => {
+    return localStorage.getItem('simulation_enabled') === 'true';
+  });
+  const [simulationSound, setSimulationSound] = useState<boolean>(() => {
+    return localStorage.getItem('simulation_sound') !== 'false';
+  });
+  const [isSimulatorOpen, setIsSimulatorOpen] = useState(false);
+  const [customSimMsg, setCustomSimMsg] = useState('');
+  const [customSimChatId, setCustomSimChatId] = useState('');
 
   const [token, setToken] = useState<string | null>(() => localStorage.getItem('auth_token'));
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
@@ -555,6 +580,28 @@ Whether you're a local resident decluttering your home, a professional service a
   const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
   const [selectedChat, setSelectedChat] = useState<Chat | null>(null);
 
+  // Keep track of active view, selected chat, chats, and listings in refs for async closures
+  const currentViewRef = useRef(currentView);
+  const selectedChatRef = useRef(selectedChat);
+  const chatsRef = useRef(chats);
+  const listingsRef = useRef(listings);
+
+  useEffect(() => {
+    currentViewRef.current = currentView;
+  }, [currentView]);
+
+  useEffect(() => {
+    selectedChatRef.current = selectedChat;
+  }, [selectedChat]);
+
+  useEffect(() => {
+    chatsRef.current = chats;
+  }, [chats]);
+
+  useEffect(() => {
+    listingsRef.current = listings;
+  }, [listings]);
+
   // Home Carousel active slide index
   const [activeSlideIndex, setActiveSlideIndex] = useState(0);
 
@@ -895,6 +942,25 @@ Whether you're a local resident decluttering your home, a professional service a
     localStorage.setItem('local_reported_queue', JSON.stringify(reportedQueue));
   }, [reportedQueue]);
 
+  useEffect(() => {
+    localStorage.setItem('simulation_enabled', String(simulationEnabled));
+  }, [simulationEnabled]);
+
+  useEffect(() => {
+    localStorage.setItem('simulation_sound', String(simulationSound));
+  }, [simulationSound]);
+
+  // Background message simulation trigger (Every 45 seconds if enabled)
+  useEffect(() => {
+    if (!simulationEnabled || !currentUser) return;
+
+    const intervalId = setInterval(() => {
+      triggerSimulatedIncomingMessage();
+    }, 45000);
+
+    return () => clearInterval(intervalId);
+  }, [simulationEnabled, currentUser?.id]);
+
   // Handle startup deep links
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -916,6 +982,23 @@ Whether you're a local resident decluttering your home, a professional service a
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3000);
   };
+
+  // Mark selected chat as read automatically
+  useEffect(() => {
+    if (currentView === 'chats' && selectedChat) {
+      setChats(prevChats => {
+        let changed = false;
+        const updated = prevChats.map(c => {
+          if (c.id === selectedChat.id && c.unreadCount > 0) {
+            changed = true;
+            return { ...c, unreadCount: 0 };
+          }
+          return c;
+        });
+        return changed ? updated : prevChats;
+      });
+    }
+  }, [currentView, selectedChat]);
 
   const handleSaveBranding = (
     name: string, 
@@ -1304,6 +1387,197 @@ Whether you're a local resident decluttering your home, a professional service a
     showToast('Chat session initialized!');
   };
 
+  // Web Audio chime player for notifications
+  const playNotificationSound = () => {
+    if (!simulationSound) return;
+    try {
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      
+      const playChime = (frequency: number, startTime: number, duration: number) => {
+        const osc = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+        
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(frequency, startTime);
+        
+        gain.gain.setValueAtTime(0.06, startTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+        
+        osc.connect(gain);
+        gain.connect(audioContext.destination);
+        
+        osc.start(startTime);
+        osc.stop(startTime + duration);
+      };
+
+      const now = audioContext.currentTime;
+      playChime(587.33, now, 0.12); // D5
+      playChime(880.00, now + 0.08, 0.25); // A5
+    } catch (e) {
+      console.warn('Audio play blocked or not supported:', e);
+    }
+  };
+
+  // Realistic buyer messages
+  const REALISTIC_SIMULATED_MESSAGES = [
+    "Hi, is this still available? I can pick it up today.",
+    "I'm very interested in this item! Is the price negotiable?",
+    "What is the condition of the item? Any scratches or issues?",
+    "Can we meet at a local metro station or a public market?",
+    "Are you open to exchange offers, or only cash/UPI?",
+    "I can offer ₹{price} for a quick deal. Let me know if that works!",
+    "Great. I will be free in the evening. Can we connect around 6 PM?",
+    "Could you share a couple of more live photos of the product?",
+    "Is the warranty still valid? Do you have the original box/invoice?"
+  ];
+
+  // Trigger simulated incoming message in real-time
+  const triggerSimulatedIncomingMessage = (customText?: string) => {
+    if (!currentUser) return;
+
+    const currentChats = chatsRef.current;
+    const currentListings = listingsRef.current;
+
+    const hasChats = currentChats.length > 0;
+    const shouldUseExistingChat = hasChats && (Math.random() > 0.4 || !currentListings.length);
+
+    if (shouldUseExistingChat) {
+      const randomChat = currentChats[Math.floor(Math.random() * currentChats.length)];
+      const isUserBuyer = currentUser.id === randomChat.buyerId;
+      const otherId = isUserBuyer ? randomChat.sellerId : randomChat.buyerId;
+      const otherName = isUserBuyer ? randomChat.sellerName : randomChat.buyerName;
+
+      let messageText = customText;
+      if (!messageText) {
+        const randMsg = REALISTIC_SIMULATED_MESSAGES[Math.floor(Math.random() * REALISTIC_SIMULATED_MESSAGES.length)];
+        messageText = randMsg.replace('{price}', Math.round(randomChat.listingPrice * 0.85).toLocaleString('en-IN'));
+      }
+
+      const newMsg: Message = {
+        id: `msg-sim-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+        chatId: randomChat.id,
+        senderId: otherId,
+        text: messageText,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        seen: false
+      };
+
+      setMessages(prev => [...prev, newMsg]);
+
+      const isChatOpenAndActive = currentViewRef.current === 'chats' && selectedChatRef.current?.id === randomChat.id;
+      
+      setChats(prevChats => prevChats.map(c => {
+        if (c.id === randomChat.id) {
+          return {
+            ...c,
+            lastMessageText: messageText,
+            lastMessageTime: 'Just now',
+            unreadCount: isChatOpenAndActive ? 0 : (c.unreadCount || 0) + 1
+          };
+        }
+        return c;
+      }));
+
+      if (!isChatOpenAndActive) {
+        playNotificationSound();
+        const newNotification = {
+          id: `notif-${Date.now()}`,
+          chatId: randomChat.id,
+          senderName: otherName,
+          listingTitle: randomChat.listingTitle,
+          listingPhoto: randomChat.listingPhoto,
+          text: messageText,
+          timestamp: 'Just now'
+        };
+        setInAppNotifications(prev => [newNotification, ...prev]);
+        setTimeout(() => {
+          setInAppNotifications(prev => prev.filter(n => n.id !== newNotification.id));
+        }, 6000);
+      }
+    } else {
+      const userListings = currentListings.filter(l => l.sellerId === currentUser.id);
+      let targetListing: Listing;
+      let buyerId: string;
+      let buyerName: string;
+      let sellerId: string;
+      let sellerName: string;
+
+      if (userListings.length > 0 && Math.random() > 0.3) {
+        targetListing = userListings[Math.floor(Math.random() * userListings.length)];
+        const randomNames = ["Aarav Sharma", "Priya Patel", "Rajesh Kumar", "Neha Gupta", "Vikram Singh", "Anjali Verma"];
+        buyerName = randomNames[Math.floor(Math.random() * randomNames.length)];
+        buyerId = `user-sim-${Math.random().toString(36).substring(2, 8)}`;
+        sellerId = currentUser.id;
+        sellerName = currentUser.fullName;
+      } else {
+        const externalListings = currentListings.filter(l => l.sellerId !== currentUser.id);
+        if (externalListings.length === 0) return;
+        targetListing = externalListings[Math.floor(Math.random() * externalListings.length)];
+        buyerId = currentUser.id;
+        buyerName = currentUser.fullName;
+        sellerId = targetListing.sellerId;
+        sellerName = targetListing.sellerName;
+      }
+
+      const existingChat = currentChats.find(c => c.listingId === targetListing.id && c.buyerId === buyerId);
+      if (existingChat) {
+        triggerSimulatedIncomingMessage(customText);
+        return;
+      }
+
+      const newChatId = `chat-sim-${Date.now()}`;
+      
+      let messageText = customText;
+      if (!messageText) {
+        const randMsg = REALISTIC_SIMULATED_MESSAGES[Math.floor(Math.random() * REALISTIC_SIMULATED_MESSAGES.length)];
+        messageText = randMsg.replace('{price}', Math.round(targetListing.price * 0.85).toLocaleString('en-IN'));
+      }
+
+      const newChat: Chat = {
+        id: newChatId,
+        listingId: targetListing.id,
+        listingTitle: targetListing.title,
+        listingPrice: targetListing.price,
+        listingPhoto: targetListing.photos && targetListing.photos.length > 0 ? targetListing.photos[0] : '',
+        buyerId,
+        buyerName,
+        sellerId,
+        sellerName,
+        lastMessageText: messageText,
+        lastMessageTime: 'Just now',
+        unreadCount: 1
+      };
+
+      const newMsg: Message = {
+        id: `msg-sim-init-${Date.now()}`,
+        chatId: newChatId,
+        senderId: buyerId === currentUser.id ? sellerId : buyerId,
+        text: messageText,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        seen: false
+      };
+
+      setChats(prev => [newChat, ...prev]);
+      setMessages(prev => [...prev, newMsg]);
+      playNotificationSound();
+
+      const senderName = buyerId === currentUser.id ? sellerName : buyerName;
+      const newNotification = {
+        id: `notif-${Date.now()}`,
+        chatId: newChatId,
+        senderName,
+        listingTitle: targetListing.title,
+        listingPhoto: targetListing.photos && targetListing.photos.length > 0 ? targetListing.photos[0] : '',
+        text: messageText,
+        timestamp: 'Just now'
+      };
+      setInAppNotifications(prev => [newNotification, ...prev]);
+      setTimeout(() => {
+        setInAppNotifications(prev => prev.filter(n => n.id !== newNotification.id));
+      }, 6000);
+    }
+  };
+
   // Send message inside chat
   const handleSendMessage = () => {
     if (!replyText.trim() || !selectedChat) return;
@@ -1331,34 +1605,63 @@ Whether you're a local resident decluttering your home, a professional service a
       return c;
     }));
 
+    const targetChatId = selectedChat.id;
+    const senderId = selectedChat.sellerId === currentUser.id ? selectedChat.buyerId : selectedChat.sellerId;
+    const senderName = selectedChat.sellerId === currentUser.id ? selectedChat.buyerName : selectedChat.sellerName;
+    const listingTitle = selectedChat.listingTitle;
+    const listingPhoto = selectedChat.listingPhoto;
+    const originalText = replyText;
+
     setReplyText('');
 
-    // Simulated Auto response from seller after 2 seconds
+    // Simulated Auto response from seller/buyer after 2 seconds
     setTimeout(() => {
-      const autoReplyText = replyText.toLowerCase().includes('price') || replyText.toLowerCase().includes('offer')
+      const autoReplyText = originalText.toLowerCase().includes('price') || originalText.toLowerCase().includes('offer')
         ? "I can lower the price slightly for a fast pickup. What price works for you?"
         : "Yes, we can meet up in a public place. Let me know what time works best!";
       
       const autoMsg: Message = {
         id: `msg-${Date.now() + 1}`,
-        chatId: selectedChat.id,
-        senderId: selectedChat.sellerId === currentUser.id ? selectedChat.buyerId : selectedChat.sellerId,
+        chatId: targetChatId,
+        senderId: senderId,
         text: autoReplyText,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         seen: false
       };
 
       setMessages(prev => [...prev, autoMsg]);
+
+      // Check if chat is currently active in view
+      const isActive = currentViewRef.current === 'chats' && selectedChatRef.current?.id === targetChatId;
+
       setChats(prevChats => prevChats.map(c => {
-        if (c.id === selectedChat.id) {
+        if (c.id === targetChatId) {
           return {
             ...c,
             lastMessageText: autoReplyText,
-            lastMessageTime: 'Just now'
+            lastMessageTime: 'Just now',
+            unreadCount: isActive ? 0 : (c.unreadCount || 0) + 1
           };
         }
         return c;
       }));
+
+      if (!isActive) {
+        playNotificationSound();
+        const newNotification = {
+          id: `notif-${Date.now()}`,
+          chatId: targetChatId,
+          senderName: senderName,
+          listingTitle: listingTitle,
+          listingPhoto: listingPhoto,
+          text: autoReplyText,
+          timestamp: 'Just now'
+        };
+        setInAppNotifications(prev => [newNotification, ...prev]);
+        setTimeout(() => {
+          setInAppNotifications(prev => prev.filter(n => n.id !== newNotification.id));
+        }, 6000);
+      }
     }, 2000);
   };
 
@@ -1937,9 +2240,9 @@ Whether you're a local resident decluttering your home, a professional service a
             className={`relative p-2 rounded-xl cursor-pointer transition-all ${currentView === 'chats' ? 'bg-blue-50 text-blue-600' : 'text-slate-600 hover:bg-slate-50'}`}
           >
             <MessageSquare className="w-5 h-5" />
-            {chats.some(c => c.unreadCount > 0) && (
+            {chats.reduce((acc, c) => acc + (c.unreadCount || 0), 0) > 0 && (
               <span className="absolute -top-1 -right-1 w-4.5 h-4.5 bg-rose-500 text-white text-[9px] font-black rounded-full flex items-center justify-center animate-pulse">
-                1
+                {chats.reduce((acc, c) => acc + (c.unreadCount || 0), 0)}
               </span>
             )}
           </button>
@@ -3042,7 +3345,14 @@ Whether you're a local resident decluttering your home, a professional service a
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-baseline">
                         <span className="text-xs font-bold text-slate-800 truncate">{ch.sellerName === currentUser.fullName ? ch.buyerName : ch.sellerName}</span>
-                        <span className="text-[9px] text-slate-400">{ch.lastMessageTime}</span>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {ch.unreadCount > 0 && (
+                            <span className="px-1.5 py-0.5 bg-rose-500 text-white text-[9px] font-black rounded-full shrink-0 animate-bounce">
+                              {ch.unreadCount}
+                            </span>
+                          )}
+                          <span className="text-[9px] text-slate-400">{ch.lastMessageTime}</span>
+                        </div>
                       </div>
                       <div className="text-[10px] font-semibold text-slate-500 truncate mt-0.5">{ch.listingTitle}</div>
                       <div className="text-xs text-slate-400 truncate mt-1">{ch.lastMessageText}</div>
@@ -5061,6 +5371,236 @@ Whether you're a local resident decluttering your home, a professional service a
           }
         }}
       />
+
+      {/* In-App Real-Time Notification Center */}
+      <div className="fixed top-20 right-4 z-[9999] flex flex-col gap-3 w-full max-w-sm pointer-events-none px-4 md:px-0">
+        <AnimatePresence>
+          {inAppNotifications.map((notif) => (
+            <motion.div
+              key={notif.id}
+              initial={{ opacity: 0, y: -20, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 15, scale: 0.95 }}
+              transition={{ duration: 0.25, ease: "easeOut" }}
+              className="pointer-events-auto bg-white/95 dark:bg-slate-900/95 backdrop-blur-md shadow-2xl border border-slate-150 dark:border-slate-800 rounded-2xl p-4 flex gap-3.5 items-start relative hover:shadow-3xl transition duration-200"
+            >
+              {/* Indicator dot */}
+              <span className="absolute top-4 right-4 flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+              </span>
+
+              {/* Sender avatar */}
+              <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-950 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold shrink-0 text-sm border border-blue-50 dark:border-blue-900/40 shadow-xs">
+                {notif.senderName.slice(0, 2).toUpperCase()}
+              </div>
+
+              {/* Content */}
+              <div className="flex-1 min-w-0 pr-4">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-black text-slate-800 dark:text-white truncate">
+                    {notif.senderName}
+                  </span>
+                  <span className="text-[9px] font-mono text-slate-400">
+                    Just now
+                  </span>
+                </div>
+
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate font-semibold mt-0.5">
+                  on {notif.listingTitle}
+                </p>
+
+                <p className="text-xs text-slate-600 dark:text-slate-350 line-clamp-2 mt-1.5 font-medium leading-relaxed bg-slate-50/60 dark:bg-slate-950/40 p-2 rounded-xl border border-slate-100 dark:border-slate-900/30">
+                  "{notif.text}"
+                </p>
+
+                {/* Action Buttons */}
+                <div className="flex gap-2 mt-3">
+                  <button
+                    onClick={() => {
+                      const foundChat = chats.find(c => c.id === notif.chatId);
+                      if (foundChat) {
+                        setSelectedChat(foundChat);
+                      }
+                      setCurrentView('chats');
+                      setInAppNotifications(prev => prev.filter(n => n.id !== notif.id));
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold text-[10px] rounded-lg transition duration-150 flex items-center gap-1 shadow-sm cursor-pointer"
+                  >
+                    <MessageSquare className="w-3 h-3" />
+                    <span>Reply Now</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setInAppNotifications(prev => prev.filter(n => n.id !== notif.id));
+                    }}
+                    className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 active:scale-95 text-slate-600 dark:text-slate-350 font-bold text-[10px] rounded-lg transition duration-150 cursor-pointer"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              </div>
+
+              {/* Thumbnail of product */}
+              {notif.listingPhoto && (
+                <img
+                  src={notif.listingPhoto}
+                  alt=""
+                  className="w-11 h-11 object-cover rounded-xl border border-slate-100 dark:border-slate-800 shrink-0 shadow-xs"
+                />
+              )}
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
+
+      {/* Interactive Simulation Dashboard / Control Panel */}
+      {currentUser && (
+        <div className="fixed bottom-6 right-6 z-50">
+          <AnimatePresence>
+            {isSimulatorOpen ? (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9, y: 30 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9, y: 30 }}
+                transition={{ type: "spring", damping: 25, stiffness: 350 }}
+                className="bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-800 rounded-3xl shadow-2xl p-5 w-80 mb-3 text-left overflow-hidden flex flex-col gap-4"
+              >
+                {/* Header */}
+                <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-amber-500 animate-pulse" />
+                    <h3 className="font-black text-xs text-slate-900 dark:text-white uppercase tracking-wider">
+                      Simulation Hub
+                    </h3>
+                  </div>
+                  <button
+                    onClick={() => setIsSimulatorOpen(false)}
+                    className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition text-slate-400 hover:text-slate-600 cursor-pointer"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                {/* Automation Toggles */}
+                <div className="space-y-3 bg-slate-50 dark:bg-slate-950 p-3 rounded-2xl border border-slate-100 dark:border-slate-900/30">
+                  <div className="flex items-center justify-between text-xs font-semibold">
+                    <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300">
+                      <BellRing className={`w-3.5 h-3.5 ${simulationEnabled ? 'text-emerald-500' : 'text-slate-400'}`} />
+                      <span>Background Alerts</span>
+                    </div>
+                    <button
+                      onClick={() => setSimulationEnabled(!simulationEnabled)}
+                      className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${simulationEnabled ? 'bg-emerald-500' : 'bg-slate-200 dark:bg-slate-800'}`}
+                    >
+                      <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${simulationEnabled ? 'translate-x-4' : 'translate-x-0'}`} />
+                    </button>
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs font-semibold">
+                    <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300">
+                      {simulationSound ? (
+                        <Volume2 className="w-3.5 h-3.5 text-blue-500 animate-bounce" />
+                      ) : (
+                        <VolumeX className="w-3.5 h-3.5 text-slate-400" />
+                      )}
+                      <span>Audio Chimes</span>
+                    </div>
+                    <button
+                      onClick={() => setSimulationSound(!simulationSound)}
+                      className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${simulationSound ? 'bg-blue-600' : 'bg-slate-200 dark:bg-slate-800'}`}
+                    >
+                      <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${simulationSound ? 'translate-x-4' : 'translate-x-0'}`} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Instant Simulation Action */}
+                <button
+                  onClick={() => {
+                    triggerSimulatedIncomingMessage();
+                    showToast("Simulated random message triggered!");
+                  }}
+                  className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-xs font-bold rounded-xl shadow-md hover:shadow-lg transition duration-150 flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <Bell className="w-3.5 h-3.5" />
+                  <span>⚡ Simulate Random Message</span>
+                </button>
+
+                {/* Custom Message Sender Form */}
+                <div className="border-t border-slate-100 dark:border-slate-800 pt-3.5 space-y-2.5">
+                  <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                    Custom Simulated Message
+                  </div>
+
+                  {chats.length > 0 ? (
+                    <div className="space-y-2.5">
+                      <select
+                        value={customSimChatId}
+                        onChange={(e) => setCustomSimChatId(e.target.value)}
+                        className="w-full p-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-350 focus:outline-hidden focus:border-blue-500"
+                      >
+                        <option value="">-- Select Chat Thread --</option>
+                        {chats.map(c => (
+                          <option key={c.id} value={c.id}>
+                            {c.sellerName === currentUser.fullName ? c.buyerName : c.sellerName} ({c.listingTitle})
+                          </option>
+                        ))}
+                      </select>
+
+                      <div className="flex gap-1.5">
+                        <input
+                          type="text"
+                          value={customSimMsg}
+                          onChange={(e) => setCustomSimMsg(e.target.value)}
+                          placeholder="Type simulated message..."
+                          className="flex-1 p-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl text-xs font-medium text-slate-700 dark:text-slate-300 focus:outline-hidden focus:border-blue-500"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && customSimMsg.trim()) {
+                              triggerSimulatedIncomingMessage(customSimMsg);
+                              setCustomSimMsg('');
+                              showToast("Custom simulated message sent!");
+                            }
+                          }}
+                        />
+                        <button
+                          onClick={() => {
+                            if (!customSimMsg.trim()) return;
+                            triggerSimulatedIncomingMessage(customSimMsg);
+                            setCustomSimMsg('');
+                            showToast("Custom simulated message sent!");
+                          }}
+                          disabled={!customSimMsg.trim()}
+                          className="p-2 bg-slate-900 text-white rounded-xl hover:bg-slate-800 active:scale-95 disabled:opacity-40 transition cursor-pointer"
+                        >
+                          <Send className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-[10px] text-slate-400 leading-relaxed">
+                      Initialize a chat session from any advertisement card first to enable thread-specific custom testing.
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
+
+          {/* Floaty Button */}
+          <button
+            onClick={() => setIsSimulatorOpen(!isSimulatorOpen)}
+            className="w-12 h-12 bg-amber-500 hover:bg-amber-600 active:scale-95 rounded-full flex items-center justify-center text-white shadow-2xl hover:shadow-3xl cursor-pointer transition-all duration-200 hover:-translate-y-0.5 relative group"
+            title="Open Simulation Settings Hub"
+          >
+            <BellRing className="w-5.5 h-5.5 animate-pulse" />
+            <span className="absolute -top-1 -right-1 w-4.5 h-4.5 bg-slate-900 text-white text-[9px] font-black rounded-full flex items-center justify-center border border-white dark:border-slate-950 scale-90 opacity-0 group-hover:opacity-100 transition duration-150">
+              ⚙️
+            </span>
+          </button>
+        </div>
+      )}
 
     </div>
   );

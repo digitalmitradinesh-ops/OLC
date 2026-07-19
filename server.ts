@@ -19,7 +19,7 @@ const INTEGRATIONS_FILE_PATH = path.join(process.cwd(), 'website_integrations.js
 const DEFAULT_INTEGRATIONS = {
   gmail: {
     enabled: false,
-    user: '',
+    user: 'digitalmitradinesh@gmail.com',
     pass: ''
   },
   whatsapp: {
@@ -63,8 +63,10 @@ async function sendEmailOtp(toEmail: string, otpCode: string): Promise<boolean> 
   let gmailUser = (integrations.gmail && integrations.gmail.enabled) ? integrations.gmail.user : undefined;
   let gmailPass = (integrations.gmail && integrations.gmail.enabled) ? integrations.gmail.pass : undefined;
 
-  if (!gmailUser || !gmailPass) {
-    gmailUser = process.env.GMAIL_USER;
+  if (!gmailUser) {
+    gmailUser = process.env.GMAIL_USER || 'digitalmitradinesh@gmail.com';
+  }
+  if (!gmailPass) {
     gmailPass = process.env.GMAIL_APP_PASSWORD;
   }
 
@@ -341,9 +343,42 @@ const DEFAULT_ACCOUNTS: UserAccount[] = [
   }
 ];
 
-// In-memory accounts storage
+// File-based accounts persistence
+const USER_ACCOUNTS_FILE_PATH = path.join(process.cwd(), 'user_accounts_db.json');
 const userAccountsMap = new Map<string, UserAccount>();
-DEFAULT_ACCOUNTS.forEach(acc => userAccountsMap.set(acc.email.toLowerCase(), acc));
+
+function saveUserAccounts() {
+  try {
+    const list = Array.from(userAccountsMap.values());
+    fs.writeFileSync(USER_ACCOUNTS_FILE_PATH, JSON.stringify(list, null, 2), 'utf-8');
+  } catch (err) {
+    console.error('Error persisting user accounts:', err);
+  }
+}
+
+function loadUserAccounts() {
+  try {
+    if (fs.existsSync(USER_ACCOUNTS_FILE_PATH)) {
+      const content = fs.readFileSync(USER_ACCOUNTS_FILE_PATH, 'utf-8');
+      const list = JSON.parse(content) as UserAccount[];
+      userAccountsMap.clear();
+      list.forEach(acc => userAccountsMap.set(acc.email.toLowerCase(), acc));
+      console.log(`Loaded ${userAccountsMap.size} user accounts from persistent storage.`);
+    } else {
+      userAccountsMap.clear();
+      DEFAULT_ACCOUNTS.forEach(acc => userAccountsMap.set(acc.email.toLowerCase(), acc));
+      saveUserAccounts();
+      console.log('Initialized persistent user accounts with defaults.');
+    }
+  } catch (err) {
+    console.error('Error loading user accounts from disk:', err);
+    userAccountsMap.clear();
+    DEFAULT_ACCOUNTS.forEach(acc => userAccountsMap.set(acc.email.toLowerCase(), acc));
+  }
+}
+
+// Perform initial accounts loading
+loadUserAccounts();
 
 // Custom Gemini API Keys stored per Admin Email ID
 const adminGeminiKeysMap = new Map<string, string>();
@@ -664,18 +699,36 @@ app.post('/api/backend/admin-setup-reset', (req, res) => {
 
   const normalizedEmail = email.toLowerCase();
   
-  // Find or create admin account in-memory map
-  let account = userAccountsMap.get(normalizedEmail);
-  if (account) {
-    account.passwordHash = hashPassword(password);
-    account.fullName = fullName;
-    if (phone) account.phone = phone;
-    if (location) account.location = location;
-    account.role = 'admin'; // Always ensure role is admin
-    account.verified = true;
-    account.isPremium = true;
+  // Find if we already have an admin account in userAccountsMap
+  let adminAccount: UserAccount | undefined;
+  let oldEmailKey: string | undefined;
+
+  for (const [key, acc] of userAccountsMap.entries()) {
+    if (acc.role === 'admin') {
+      adminAccount = acc;
+      oldEmailKey = key;
+      break;
+    }
+  }
+
+  if (adminAccount) {
+    // If the email actually changed, delete the old key in the map
+    if (oldEmailKey && oldEmailKey !== normalizedEmail) {
+      userAccountsMap.delete(oldEmailKey);
+    }
+    
+    adminAccount.email = normalizedEmail;
+    adminAccount.passwordHash = hashPassword(password);
+    adminAccount.fullName = fullName;
+    if (phone) adminAccount.phone = phone;
+    if (location) adminAccount.location = location;
+    adminAccount.verified = true;
+    adminAccount.isPremium = true;
+    
+    userAccountsMap.set(normalizedEmail, adminAccount);
   } else {
-    account = {
+    // Create new admin
+    adminAccount = {
       id: `user-admin-${Date.now()}`,
       email: normalizedEmail,
       passwordHash: hashPassword(password),
@@ -690,9 +743,11 @@ app.post('/api/backend/admin-setup-reset', (req, res) => {
       isPremium: true,
       walletBalance: 15000.00
     };
+    userAccountsMap.set(normalizedEmail, adminAccount);
   }
 
-  userAccountsMap.set(normalizedEmail, account);
+  // Persist the changes
+  saveUserAccounts();
 
   res.json({
     success: true,
@@ -769,6 +824,7 @@ app.post('/api/auth/register', (req, res) => {
   };
 
   userAccountsMap.set(email.toLowerCase(), newAccount);
+  saveUserAccounts();
 
   const { passwordHash, ...userProfile } = newAccount;
   res.json({
@@ -847,8 +903,9 @@ app.post('/api/auth/update-profile', (req, res) => {
   if (profilePhotoUrl !== undefined) foundUser.profilePhotoUrl = profilePhotoUrl;
   if (req.body.verified !== undefined) foundUser.verified = req.body.verified;
 
-  // Save back to in-memory store
+  // Save back to in-memory store and persist
   userAccountsMap.set(emailKey, foundUser);
+  saveUserAccounts();
 
   const { passwordHash, ...userProfile } = foundUser;
   res.json({
@@ -940,6 +997,188 @@ app.post('/api/auth/forgot-password', async (req, res) => {
   }
 });
 
+// Send Login OTP Endpoint (Email or SMS)
+app.post('/api/auth/send-login-otp', async (req, res) => {
+  const { identifier, method } = req.body; // method is 'email' | 'sms'
+
+  if (!identifier || !method) {
+    return res.status(400).json({ success: false, message: 'Identifier and login method are required.' });
+  }
+
+  const searchKey = identifier.trim().toLowerCase();
+  let foundUser: UserAccount | undefined;
+
+  for (const acc of userAccountsMap.values()) {
+    if (method === 'email' && acc.email.toLowerCase() === searchKey) {
+      foundUser = acc;
+      break;
+    } else if (method === 'sms') {
+      const cleanPhone = acc.phone.replace(/[^0-9]/g, '');
+      const cleanInput = identifier.replace(/[^0-9]/g, '');
+      if (cleanPhone === cleanInput || acc.phone.trim() === identifier.trim()) {
+        foundUser = acc;
+        break;
+      }
+    }
+  }
+
+  if (!foundUser) {
+    return res.status(404).json({
+      success: false,
+      message: `No active account found with the registered ${method === 'email' ? 'email address' : 'mobile number'}. Please register first.`
+    });
+  }
+
+  const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+  pendingOtps.set(searchKey, {
+    otp: otpCode,
+    expires: Date.now() + 10 * 60 * 1000
+  });
+
+  if (method === 'email') {
+    const isSent = await sendEmailOtp(foundUser.email, otpCode);
+    return res.json({
+      success: true,
+      message: isSent 
+        ? `A secure 6-digit login OTP code has been successfully dispatched to your email address (${foundUser.email}).`
+        : `A secure login verification OTP code has been generated. To receive real emails, please configure GMAIL_USER and GMAIL_APP_PASSWORD.`,
+      otp: otpCode,
+      realEmailSent: isSent,
+      method
+    });
+  } else {
+    const result = await sendWhatsAppOtp(foundUser.phone, otpCode);
+    const integrations = loadIntegrations();
+    const isReal = result.success && integrations.whatsapp && integrations.whatsapp.enabled && integrations.whatsapp.provider !== 'sandbox';
+    return res.json({
+      success: true,
+      message: isReal
+        ? `A secure login verification OTP code has been dispatched to your mobile number via WhatsApp (${foundUser.phone}).`
+        : `A secure login verification OTP code has been generated. To receive real SMS/WhatsApp messages, please configure Twilio/Meta integration.`,
+      otp: otpCode,
+      realEmailSent: false,
+      realSmsSent: isReal,
+      method
+    });
+  }
+});
+
+// Verify Login OTP Endpoint
+app.post('/api/auth/verify-login-otp', (req, res) => {
+  const { identifier, otp } = req.body;
+
+  if (!identifier || !otp) {
+    return res.status(400).json({ success: false, message: 'Identifier and login verification OTP are required.' });
+  }
+
+  const searchKey = identifier.trim().toLowerCase();
+  const pending = pendingOtps.get(searchKey);
+
+  if (!pending || pending.expires < Date.now()) {
+    return res.status(400).json({ success: false, message: 'OTP code has expired or is invalid. Please request a new code.' });
+  }
+
+  if (pending.otp !== otp.trim()) {
+    return res.status(400).json({ success: false, message: 'Invalid login OTP. Please check your spelling and try again.' });
+  }
+
+  pendingOtps.delete(searchKey);
+
+  // Find the user account
+  let foundUser: UserAccount | undefined;
+  for (const acc of userAccountsMap.values()) {
+    if (acc.email.toLowerCase() === searchKey) {
+      foundUser = acc;
+      break;
+    } else {
+      const cleanPhone = acc.phone.replace(/[^0-9]/g, '');
+      const cleanInput = identifier.replace(/[^0-9]/g, '');
+      if (cleanPhone === cleanInput || acc.phone.trim() === identifier.trim()) {
+        foundUser = acc;
+        break;
+      }
+    }
+  }
+
+  if (!foundUser) {
+    return res.status(404).json({ success: false, message: 'User account not found.' });
+  }
+
+  if (foundUser.status === 'suspended') {
+    return res.status(403).json({ success: false, message: 'Your account access has been suspended.' });
+  }
+
+  const token = generateSessionToken(foundUser.id, foundUser.role);
+  const { passwordHash, ...userProfile } = foundUser;
+
+  res.json({
+    success: true,
+    message: 'Authenticated successfully via secure OTP.',
+    token,
+    user: userProfile
+  });
+});
+
+// Google Sign-In / Auth Endpoint
+app.post('/api/auth/google', (req, res) => {
+  const { email, fullName, avatarUrl } = req.body;
+
+  if (!email) {
+    return res.status(400).json({ success: false, message: 'Google account email is required' });
+  }
+
+  const normalizedEmail = email.toLowerCase();
+  let account = userAccountsMap.get(normalizedEmail);
+
+  if (!account) {
+    // Check if the registered admin email is this email
+    let isAdminEmail = false;
+    for (const acc of userAccountsMap.values()) {
+      if (acc.role === 'admin' && acc.email.toLowerCase() === normalizedEmail) {
+        isAdminEmail = true;
+        break;
+      }
+    }
+    // Fallback default admin emails
+    if (normalizedEmail === 'digitalmitradinesh@gmail.com') {
+      isAdminEmail = true;
+    }
+
+    // Auto-create a user account for Google sign in if it doesn't exist
+    account = {
+      id: `user-google-${Date.now()}`,
+      email: normalizedEmail,
+      passwordHash: hashPassword(`Google@${Math.floor(1000 + Math.random() * 9000)}`),
+      phone: '+91 99999 00000', // default, editable later
+      fullName: fullName || email.split('@')[0],
+      avatarUrl: avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
+      location: 'New Delhi, India',
+      role: isAdminEmail ? 'admin' : 'buyer',
+      rating: 5.0,
+      joinedDate: new Date().toISOString().split('T')[0],
+      verified: true,
+      isPremium: isAdminEmail,
+      walletBalance: isAdminEmail ? 15000.00 : 0.00
+    };
+    userAccountsMap.set(normalizedEmail, account);
+    saveUserAccounts();
+  }
+
+  if (account.status === 'suspended') {
+    return res.status(403).json({ success: false, message: 'Your Google Account access has been suspended.' });
+  }
+
+  const token = generateSessionToken(account.id, account.role);
+  const { passwordHash, ...userProfile } = account;
+
+  res.json({
+    success: true,
+    message: 'Google Sign-In completed successfully',
+    token,
+    user: userProfile
+  });
+});
+
 // Reset Password API Endpoint
 app.post('/api/auth/reset-password', (req, res) => {
   const { identifier, otp, newPassword } = req.body;
@@ -991,6 +1230,7 @@ app.post('/api/auth/reset-password', (req, res) => {
   // Set the new hashed password
   foundUser.passwordHash = hashPassword(newPassword);
   userAccountsMap.set(foundUserKey, foundUser);
+  saveUserAccounts();
 
   // Clear OTP from memory
   pendingOtps.delete(searchKey);
@@ -1419,6 +1659,7 @@ app.post('/api/admin/managers/create', (req, res) => {
   };
 
   userAccountsMap.set(email.toLowerCase(), newManager);
+  saveUserAccounts();
 
   const { passwordHash, ...profile } = newManager;
   res.json({
@@ -1429,7 +1670,7 @@ app.post('/api/admin/managers/create', (req, res) => {
 });
 
 app.post('/api/admin/managers/update', (req, res) => {
-  const { token, id, fullName, phone, location, permissions, status } = req.body;
+  const { token, id, email, fullName, phone, location, permissions, status } = req.body;
   if (!token) {
     return res.status(400).json({ success: false, message: 'Token is required' });
   }
@@ -1446,16 +1687,27 @@ app.post('/api/admin/managers/update', (req, res) => {
   let foundManagerKey: string | undefined;
   let foundManager: UserAccount | undefined;
 
-  for (const [email, acc] of userAccountsMap.entries()) {
+  for (const [emailKey, acc] of userAccountsMap.entries()) {
     if (acc.id === id && acc.role === 'moderator') {
       foundManager = acc;
-      foundManagerKey = email;
+      foundManagerKey = emailKey;
       break;
     }
   }
 
   if (!foundManager || !foundManagerKey) {
     return res.status(404).json({ success: false, message: 'Website Manager account not found.' });
+  }
+
+  // Handle email modification
+  if (email && email.toLowerCase() !== foundManager.email.toLowerCase()) {
+    if (userAccountsMap.has(email.toLowerCase())) {
+      return res.status(400).json({ success: false, message: 'An account with this email address already exists.' });
+    }
+    // Delete old key, update email in profile
+    userAccountsMap.delete(foundManagerKey);
+    foundManager.email = email.toLowerCase();
+    foundManagerKey = email.toLowerCase();
   }
 
   if (fullName !== undefined) foundManager.fullName = fullName;
@@ -1465,6 +1717,7 @@ app.post('/api/admin/managers/update', (req, res) => {
   if (status !== undefined) foundManager.status = status;
 
   userAccountsMap.set(foundManagerKey, foundManager);
+  saveUserAccounts();
 
   const { passwordHash, ...profile } = foundManager;
   res.json({
@@ -1502,6 +1755,8 @@ app.post('/api/admin/managers/delete', (req, res) => {
   }
 
   userAccountsMap.delete(foundManagerKey);
+  saveUserAccounts();
+
   res.json({
     success: true,
     message: 'Website Manager account and system access deleted and revoked successfully.'

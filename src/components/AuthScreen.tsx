@@ -44,6 +44,19 @@ export default function AuthScreen({
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   
+  // Login OTP States
+  const [loginMethod, setLoginMethod] = useState<'password' | 'otp'>('password');
+  const [loginOtpChannel, setLoginOtpChannel] = useState<'email' | 'sms'>('email');
+  const [loginIdentifier, setLoginIdentifier] = useState('');
+  const [loginOtpStep, setLoginOtpStep] = useState<1 | 2>(1);
+  const [loginOtpCode, setLoginOtpCode] = useState('');
+  const [loginOtpSimulated, setLoginOtpSimulated] = useState<string | null>(null);
+
+  // Google Simulation States
+  const [showGooglePrompt, setShowGooglePrompt] = useState(false);
+  const [googleCustomEmail, setGoogleCustomEmail] = useState('');
+  const [googleCustomName, setGoogleCustomName] = useState('');
+  
   // Registration States
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
@@ -200,8 +213,8 @@ export default function AuthScreen({
     setErrorMsg(null);
     setSuccessMsg(null);
 
-    if (!email || !password || !fullName) {
-      setErrorMsg('All fields marked with * are required.');
+    if (!email || !password || !fullName || !phone) {
+      setErrorMsg('All fields marked with * are required (Email, Password, Full Name, and Phone/Mobile Number).');
       return;
     }
 
@@ -266,6 +279,117 @@ export default function AuthScreen({
     } catch (err: any) {
       console.error('Registration connection error:', err);
       setErrorMsg('Failed to connect to registration server. Please try again in a moment.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handler to request a login verification OTP
+  const handleSendLoginOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg(null);
+    setSuccessMsg(null);
+    setLoginOtpSimulated(null);
+
+    if (!loginIdentifier.trim()) {
+      setErrorMsg(`Please enter your registered ${loginOtpChannel === 'email' ? 'email address' : 'mobile phone number'}.`);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await fetch('/api/auth/send-login-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          identifier: loginIdentifier.trim(),
+          method: loginOtpChannel
+        })
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setSuccessMsg(data.message);
+        setLoginOtpSimulated(data.otp);
+        setLoginOtpStep(2);
+      } else {
+        setErrorMsg(data.message || 'Failed to dispatch login OTP.');
+      }
+    } catch (err) {
+      setErrorMsg('Failed to establish connection with secure login server.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handler to verify the login OTP code
+  const handleVerifyLoginOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg(null);
+    setSuccessMsg(null);
+
+    if (!loginOtpCode.trim()) {
+      setErrorMsg('Please enter the 6-digit login verification OTP.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await fetch('/api/auth/verify-login-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          identifier: loginIdentifier.trim(),
+          otp: loginOtpCode.trim()
+        })
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setSuccessMsg('Authenticated successfully via secure OTP! Loading workspace...');
+        setLoginOtpSimulated(null);
+        setTimeout(() => {
+          onLoginSuccess(data.user, data.token);
+        }, 1200);
+      } else {
+        setErrorMsg(data.message || 'OTP verification failed. Please try again.');
+      }
+    } catch (err) {
+      setErrorMsg('Failed to verify OTP with secure server.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handler for Google SSO login simulation
+  const handleGoogleSsoLogin = async (googleEmailAddress: string, googleDisplayName?: string) => {
+    setErrorMsg(null);
+    setSuccessMsg(null);
+    setShowGooglePrompt(false);
+    setLoading(true);
+
+    try {
+      const response = await fetch('/api/auth/google', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: googleEmailAddress.trim(),
+          fullName: googleDisplayName || googleEmailAddress.split('@')[0],
+          avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80'
+        })
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setSuccessMsg('Google Single Sign-In completed successfully! Synchronizing system details...');
+        setTimeout(() => {
+          onLoginSuccess(data.user, data.token);
+        }, 1200);
+      } else {
+        setErrorMsg(data.message || 'Google SSO verification failed.');
+      }
+    } catch (err) {
+      setErrorMsg('Failed to connect to Google validation servers.');
     } finally {
       setLoading(false);
     }
@@ -370,6 +494,376 @@ export default function AuthScreen({
     }
   };
 
+  const renderGooglePromptUI = () => {
+    if (!showGooglePrompt) return null;
+    return (
+      <div className="fixed inset-0 bg-slate-900/65 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-5 text-left">
+          <div className="text-center space-y-2">
+            <div className="w-12 h-12 bg-blue-50 dark:bg-blue-950/40 rounded-full flex items-center justify-center mx-auto">
+              <svg className="w-6 h-6" viewBox="0 0 24 24">
+                <path
+                  fill="#4285F4"
+                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                />
+                <path
+                  fill="#34A853"
+                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                />
+                <path
+                  fill="#FBBC05"
+                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                />
+                <path
+                  fill="#EA4335"
+                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                />
+              </svg>
+            </div>
+            <h3 className="text-base font-black text-slate-800 dark:text-slate-100">Sign in with Google</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Select an account to proceed to our secure app</p>
+          </div>
+
+          <div className="space-y-2.5">
+            {/* Active Admin Account Quick Option */}
+            <button
+              type="button"
+              onClick={() => handleGoogleSsoLogin('digitalmitradinesh@gmail.com', 'Dinesh Mitra')}
+              className="w-full p-3 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800/40 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl flex items-center gap-3 transition text-left cursor-pointer"
+            >
+              <img
+                src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80"
+                alt="Dinesh avatar"
+                className="w-9 h-9 rounded-full object-cover border border-slate-200 dark:border-slate-700"
+              />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-black text-slate-800 dark:text-slate-200 truncate">Dinesh Mitra (Admin)</p>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">digitalmitradinesh@gmail.com</p>
+              </div>
+              <span className="text-[10px] font-black uppercase text-blue-600 dark:text-blue-400 shrink-0">Admin Link</span>
+            </button>
+
+            {/* Or Custom Google Account Input */}
+            <div className="relative py-1">
+              <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-200 dark:border-slate-800"></div></div>
+              <span className="relative bg-white dark:bg-slate-900 px-3 text-[9px] text-slate-400 font-bold uppercase tracking-wider block text-center">Or use another account</span>
+            </div>
+
+            <div className="space-y-2.5">
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">Google Email Address</label>
+                <input
+                  type="email"
+                  placeholder="username@gmail.com"
+                  value={googleCustomEmail}
+                  onChange={(e) => setGoogleCustomEmail(e.target.value)}
+                  className="w-full bg-slate-50 dark:bg-slate-800/50 px-3.5 py-2 border rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-100 outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">Display Name (Optional)</label>
+                <input
+                  type="text"
+                  placeholder="Your Name"
+                  value={googleCustomName}
+                  onChange={(e) => setGoogleCustomName(e.target.value)}
+                  className="w-full bg-slate-50 dark:bg-slate-800/50 px-3.5 py-2 border rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-100 outline-none focus:border-blue-500"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="flex gap-2 pt-2">
+            <button
+              type="button"
+              onClick={() => setShowGooglePrompt(false)}
+              className="flex-1 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 font-bold rounded-xl text-xs transition cursor-pointer border-none"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              disabled={!googleCustomEmail}
+              onClick={() => handleGoogleSsoLogin(googleCustomEmail, googleCustomName)}
+              className="flex-1 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-300 dark:disabled:bg-slate-800 text-white font-bold rounded-xl text-xs transition cursor-pointer border-none"
+            >
+              Authorize & Login
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderLoginFormUI = () => {
+    return (
+      <div className="space-y-4">
+        {/* Login Method Sub-Tabs */}
+        <div className="grid grid-cols-2 gap-2 p-1 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200/50 dark:border-slate-700/50">
+          <button
+            type="button"
+            onClick={() => { setLoginMethod('password'); setErrorMsg(null); }}
+            className={`py-1.5 rounded-lg text-[10px] sm:text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+              loginMethod === 'password'
+                ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs border border-slate-100 dark:border-slate-800'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
+            }`}
+          >
+            <Lock className="w-3.5 h-3.5" />
+            Password Login
+          </button>
+          <button
+            type="button"
+            onClick={() => { setLoginMethod('otp'); setErrorMsg(null); }}
+            className={`py-1.5 rounded-lg text-[10px] sm:text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+              loginMethod === 'otp'
+                ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs border border-slate-100 dark:border-slate-800'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
+            }`}
+          >
+            <ShieldCheck className="w-3.5 h-3.5" />
+            OTP / SMS Login
+          </button>
+        </div>
+
+        {loginMethod === 'password' ? (
+          <form onSubmit={handleLoginSubmit} className="space-y-4">
+            <div className="space-y-1">
+              <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">Email Address</label>
+              <div className="relative flex items-center">
+                <Mail className="absolute left-3 w-4.5 h-4.5 text-slate-400" />
+                <input 
+                  type="email" 
+                  required
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full bg-slate-50 hover:bg-slate-100/70 focus:bg-white dark:bg-slate-800 dark:hover:bg-slate-800/80 dark:focus:bg-slate-900 pl-10 pr-4 py-2 border border-slate-200 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-500 rounded-xl text-xs outline-none transition font-semibold text-slate-800 dark:text-slate-100"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <div className="flex justify-between items-center">
+                <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">Password</label>
+                <button 
+                  type="button" 
+                  onClick={() => { setActiveTab('forgot_password'); setErrorMsg(null); }}
+                  className="text-[10px] text-blue-600 hover:underline font-bold bg-transparent border-none outline-none cursor-pointer"
+                >
+                  Forgot Password?
+                </button>
+              </div>
+              <div className="relative flex items-center">
+                <Lock className="absolute left-3 w-4.5 h-4.5 text-slate-400" />
+                <input 
+                  type={showPassword ? 'text' : 'password'} 
+                  required
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full bg-slate-50 hover:bg-slate-100/70 focus:bg-white dark:bg-slate-800 dark:hover:bg-slate-800/80 dark:focus:bg-slate-900 pl-10 pr-10 py-2 border border-slate-200 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-500 rounded-xl text-xs outline-none transition font-semibold text-slate-800 dark:text-slate-100"
+                />
+                <button 
+                  type="button" 
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 bg-transparent border-none outline-none cursor-pointer"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            {/* Bot-prevention math challenge captcha if needed */}
+            {!isCaptchaVerified && (
+              <div className="p-3 bg-blue-50/40 dark:bg-blue-950/20 rounded-xl border border-blue-100 dark:border-blue-900/40 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black text-blue-800 dark:text-blue-300 uppercase tracking-wider">Platform Security Verification</span>
+                  <span className="text-[9px] text-slate-400 dark:text-slate-500 font-mono">CAPTCHA Challenge</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-lg font-mono text-xs font-black text-slate-700 dark:text-slate-300 tracking-widest select-none border border-slate-200 dark:border-slate-700">
+                    {captchaNum1} + {captchaNum2} = ?
+                  </div>
+                  <input 
+                    type="number"
+                    required
+                    placeholder="Answer"
+                    value={captchaUserAnswer}
+                    onChange={(e) => {
+                      setCaptchaUserAnswer(e.target.value);
+                      setCaptchaError(false);
+                    }}
+                    className={`flex-1 bg-white dark:bg-slate-900 px-3 py-1.5 border ${captchaError ? 'border-rose-500' : 'border-slate-200 dark:border-slate-700'} focus:border-blue-500 rounded-lg text-xs outline-none font-semibold text-slate-800 dark:text-slate-100`}
+                  />
+                </div>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-300 dark:disabled:bg-slate-800 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition shadow-sm cursor-pointer"
+            >
+              {loading ? 'Decrypting Access Token...' : 'Establish Secure Session'}
+            </button>
+          </form>
+        ) : (
+          <div className="space-y-4">
+            {/* OTP Channel Selector */}
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => { setLoginOtpChannel('email'); setLoginOtpStep(1); setLoginOtpSimulated(null); }}
+                className={`flex-1 py-2 text-xs font-bold rounded-xl border transition flex items-center justify-center gap-2 cursor-pointer ${
+                  loginOtpChannel === 'email'
+                    ? 'bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800'
+                    : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800'
+                }`}
+              >
+                <Mail className="w-4 h-4" />
+                Email OTP
+              </button>
+              <button
+                type="button"
+                onClick={() => { setLoginOtpChannel('sms'); setLoginOtpStep(1); setLoginOtpSimulated(null); }}
+                className={`flex-1 py-2 text-xs font-bold rounded-xl border transition flex items-center justify-center gap-2 cursor-pointer ${
+                  loginOtpChannel === 'sms'
+                    ? 'bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800'
+                    : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800'
+                }`}
+              >
+                <Phone className="w-4 h-4" />
+                SMS / Mobile OTP
+              </button>
+            </div>
+
+            {loginOtpStep === 1 ? (
+              <form onSubmit={handleSendLoginOtp} className="space-y-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                    {loginOtpChannel === 'email' ? 'Registered Email Address' : 'Registered Mobile Number'}
+                  </label>
+                  <div className="relative flex items-center">
+                    {loginOtpChannel === 'email' ? (
+                      <Mail className="absolute left-3 w-4.5 h-4.5 text-slate-400" />
+                    ) : (
+                      <Phone className="absolute left-3 w-4.5 h-4.5 text-slate-400" />
+                    )}
+                    <input
+                      type={loginOtpChannel === 'email' ? 'email' : 'text'}
+                      required
+                      placeholder={loginOtpChannel === 'email' ? 'you@example.com' : '+91 XXXXX XXXXX'}
+                      value={loginIdentifier}
+                      onChange={(e) => setLoginIdentifier(e.target.value)}
+                      className="w-full bg-slate-50 hover:bg-slate-100/70 focus:bg-white dark:bg-slate-800 dark:hover:bg-slate-800/80 dark:focus:bg-slate-900 pl-10 pr-4 py-2 border border-slate-200 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-500 rounded-xl text-xs outline-none transition font-semibold text-slate-800 dark:text-slate-100"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-300 dark:disabled:bg-slate-800 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition shadow-sm cursor-pointer"
+                >
+                  {loading ? 'Dispatched secure handshake...' : `Send Login OTP Code`}
+                </button>
+              </form>
+            ) : (
+              <form onSubmit={handleVerifyLoginOtp} className="space-y-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">Enter 6-Digit OTP</label>
+                  <div className="relative flex items-center">
+                    <KeyRound className="absolute left-3 w-4.5 h-4.5 text-slate-400" />
+                    <input
+                      type="text"
+                      required
+                      maxLength={6}
+                      placeholder="XXXXXX"
+                      value={loginOtpCode}
+                      onChange={(e) => setLoginOtpCode(e.target.value)}
+                      className="w-full bg-slate-50 hover:bg-slate-100/70 focus:bg-white dark:bg-slate-800 dark:hover:bg-slate-800/80 dark:focus:bg-slate-900 pl-10 pr-4 py-2 border border-slate-200 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-500 rounded-xl text-xs outline-none transition font-semibold text-slate-800 dark:text-slate-100 tracking-widest text-center"
+                    />
+                  </div>
+                </div>
+
+                {loginOtpSimulated && (
+                  <div className="p-3 bg-amber-50 dark:bg-amber-950/20 rounded-xl border border-amber-200 dark:border-amber-900/40 space-y-1 text-xs">
+                    <div className="font-bold text-amber-800 dark:text-amber-400 flex items-center gap-1.5">
+                      <CheckCircle className="w-4 h-4 text-amber-500" />
+                      Sandbox Intercepted OTP Code:
+                    </div>
+                    <div className="font-mono text-base font-black text-amber-900 dark:text-amber-300 tracking-widest text-center bg-white dark:bg-slate-900 py-1.5 rounded-lg border">
+                      {loginOtpSimulated}
+                    </div>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 text-center leading-relaxed mt-1">
+                      In production, this code is transmitted directly via {loginOtpChannel === 'email' ? 'Email' : 'WhatsApp/SMS'}.
+                    </p>
+                  </div>
+                )}
+
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => { setLoginOtpStep(1); setLoginOtpSimulated(null); }}
+                    className="flex-1 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 font-bold rounded-xl text-xs transition cursor-pointer"
+                  >
+                    Change Identity
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="flex-1 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-300 dark:disabled:bg-slate-800 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition shadow-sm cursor-pointer"
+                  >
+                    {loading ? 'Authenticating...' : 'Verify & Log In'}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        )}
+
+        {/* Branded Google Sign-In button */}
+        <div className="relative flex py-2 items-center">
+          <div className="flex-grow border-t border-slate-200 dark:border-slate-800"></div>
+          <span className="flex-shrink mx-4 text-[10px] text-slate-400 font-bold uppercase tracking-widest">Or Sign In with</span>
+          <div className="flex-grow border-t border-slate-200 dark:border-slate-800"></div>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => {
+            setGoogleCustomEmail('');
+            setGoogleCustomName('');
+            setShowGooglePrompt(true);
+          }}
+          className="w-full py-2.5 bg-white hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold rounded-xl text-xs border border-slate-200 dark:border-slate-700 transition shadow-xs flex items-center justify-center gap-2.5 cursor-pointer"
+        >
+          <svg className="w-4 h-4" viewBox="0 0 24 24">
+            <path
+              fill="#4285F4"
+              d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+            />
+            <path
+              fill="#34A853"
+              d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+            />
+            <path
+              fill="#FBBC05"
+              d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+            />
+            <path
+              fill="#EA4335"
+              d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+            />
+          </svg>
+          Login with Google Account
+        </button>
+      </div>
+    );
+  };
+
   if (isPopup) {
     return (
       <div className="w-full max-h-[85vh] overflow-y-auto p-2 sm:p-4 text-left font-sans">
@@ -438,87 +932,7 @@ export default function AuthScreen({
 
           {/* Form Switchboard */}
           {activeTab === 'login' ? (
-            <form onSubmit={handleLoginSubmit} className="space-y-4">
-              <div className="space-y-1">
-                <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">Email Address</label>
-                <div className="relative flex items-center">
-                  <Mail className="absolute left-3 w-4.5 h-4.5 text-slate-400" />
-                  <input 
-                    type="email" 
-                    required
-                    placeholder="you@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full bg-slate-50 hover:bg-slate-100/70 focus:bg-white dark:bg-slate-800 dark:hover:bg-slate-800/80 dark:focus:bg-slate-900 pl-10 pr-4 py-2 border border-slate-200 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-500 rounded-xl text-xs outline-none transition font-semibold text-slate-800 dark:text-slate-100"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <div className="flex justify-between items-center">
-                  <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">Password</label>
-                  <button 
-                    type="button" 
-                    onClick={() => { setActiveTab('forgot_password'); setErrorMsg(null); }}
-                    className="text-[10px] text-blue-600 hover:underline font-bold bg-transparent border-none outline-none cursor-pointer"
-                  >
-                    Forgot Password?
-                  </button>
-                </div>
-                <div className="relative flex items-center">
-                  <Lock className="absolute left-3 w-4.5 h-4.5 text-slate-400" />
-                  <input 
-                    type={showPassword ? 'text' : 'password'} 
-                    required
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full bg-slate-50 hover:bg-slate-100/70 focus:bg-white dark:bg-slate-800 dark:hover:bg-slate-800/80 dark:focus:bg-slate-900 pl-10 pr-10 py-2 border border-slate-200 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-500 rounded-xl text-xs outline-none transition font-semibold text-slate-800 dark:text-slate-100"
-                  />
-                  <button 
-                    type="button" 
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 bg-transparent border-none outline-none cursor-pointer"
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-
-              {/* Bot-prevention math challenge captcha if needed */}
-              {!isCaptchaVerified && (
-                <div className="p-3 bg-blue-50/40 dark:bg-blue-950/20 rounded-xl border border-blue-100 dark:border-blue-900/40 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-black text-blue-800 dark:text-blue-300 uppercase tracking-wider">Platform Security Verification</span>
-                    <span className="text-[9px] text-slate-400 dark:text-slate-500 font-mono">CAPTCHA Challenge</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-lg font-mono text-xs font-black text-slate-700 dark:text-slate-300 tracking-widest select-none border border-slate-200 dark:border-slate-700">
-                      {captchaNum1} + {captchaNum2} = ?
-                    </div>
-                    <input 
-                      type="number"
-                      required
-                      placeholder="Answer"
-                      value={captchaUserAnswer}
-                      onChange={(e) => {
-                        setCaptchaUserAnswer(e.target.value);
-                        setCaptchaError(false);
-                      }}
-                      className={`flex-1 bg-white dark:bg-slate-900 px-3 py-1.5 border ${captchaError ? 'border-rose-500' : 'border-slate-200 dark:border-slate-700'} focus:border-blue-500 rounded-lg text-xs outline-none font-semibold text-slate-800 dark:text-slate-100`}
-                    />
-                  </div>
-                </div>
-              )}
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-300 dark:disabled:bg-slate-800 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition shadow-sm cursor-pointer"
-              >
-                {loading ? 'Decrypting Access Token...' : 'Establish Secure Session'}
-              </button>
-            </form>
+            renderLoginFormUI()
           ) : activeTab === 'register' ? (
             <form onSubmit={handleRegisterSubmit} className="space-y-4 max-h-[40vh] overflow-y-auto pr-1">
               <div className="space-y-1">
@@ -577,11 +991,12 @@ export default function AuthScreen({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">Mobile Number</label>
+                  <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">Mobile Number *</label>
                   <div className="relative flex items-center">
                     <Phone className="absolute left-3 w-4.5 h-4.5 text-slate-400" />
                     <input 
                       type="tel" 
+                      required
                       placeholder="+91 XXXXX XXXXX"
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
@@ -725,7 +1140,7 @@ export default function AuthScreen({
             </form>
           )}
 
-
+          {renderGooglePromptUI()}
         </div>
       </div>
     );
@@ -832,102 +1247,7 @@ export default function AuthScreen({
 
           {/* Form Switchboard */}
           {activeTab === 'login' ? (
-            <form onSubmit={handleLoginSubmit} className="space-y-4">
-              <div className="space-y-1">
-                <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">Email Address</label>
-                <div className="relative flex items-center">
-                  <Mail className="absolute left-3 w-4.5 h-4.5 text-slate-400" />
-                  <input 
-                    type="email" 
-                    required
-                    placeholder="you@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full bg-slate-50 hover:bg-slate-100/70 focus:bg-white dark:bg-slate-800 dark:hover:bg-slate-800/80 dark:focus:bg-slate-900 pl-10 pr-4 py-2.5 border border-slate-200 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-500 rounded-xl text-xs outline-none transition font-semibold text-slate-800 dark:text-slate-100"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <div className="flex justify-between items-center">
-                  <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">Password</label>
-                  <button
-                    type="button"
-                    onClick={() => { setActiveTab('forgot_password'); setErrorMsg(null); setSuccessMsg(null); setForgotStep(1); }}
-                    className="text-[10px] font-bold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
-                  >
-                    Forgot Password?
-                  </button>
-                </div>
-                <div className="relative flex items-center">
-                  <KeyRound className="absolute left-3 w-4.5 h-4.5 text-slate-400" />
-                  <input 
-                    type={showPassword ? 'text' : 'password'} 
-                    required
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full bg-slate-50 hover:bg-slate-100/70 focus:bg-white dark:bg-slate-800 dark:hover:bg-slate-800/80 dark:focus:bg-slate-900 pl-10 pr-10 py-2.5 border border-slate-200 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-500 rounded-xl text-xs outline-none transition font-mono text-slate-800 dark:text-slate-100"
-                  />
-                  <button 
-                    type="button" 
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 focus:outline-none"
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-
-              {/* Secure verification challenge captcha */}
-              <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl p-3 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">Secure Verification Challenge</span>
-                  <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 cursor-pointer hover:underline" onClick={generateCaptcha}>Reload</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="bg-blue-100/80 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 font-extrabold px-3 py-1.5 rounded-lg text-sm tracking-widest select-none">
-                    {captchaNum1} + {captchaNum2} = ?
-                  </div>
-                  <input 
-                    type="text"
-                    required
-                    placeholder="Answer"
-                    value={captchaUserAnswer}
-                    onChange={(e) => {
-                      setCaptchaUserAnswer(e.target.value);
-                      if (e.target.value === captchaAnswer) {
-                        setIsCaptchaVerified(true);
-                        setCaptchaError(false);
-                      } else {
-                        setIsCaptchaVerified(false);
-                      }
-                    }}
-                    className={`w-28 px-3 py-1.5 border rounded-lg text-xs outline-none text-center font-black ${captchaError ? 'border-rose-400 text-rose-600 bg-rose-50 dark:bg-rose-950/20' : isCaptchaVerified ? 'border-emerald-500 text-emerald-600 bg-emerald-50 dark:bg-emerald-950/20' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100'}`}
-                  />
-                  {isCaptchaVerified && (
-                    <span className="text-[10px] font-black text-emerald-600 flex items-center gap-1 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/50 px-2 py-0.5 rounded-full">
-                      <CheckCircle className="w-3.5 h-3.5" /> Verified
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              <button 
-                type="submit"
-                disabled={loading}
-                className="w-full py-3 bg-blue-600 hover:bg-blue-500 disabled:bg-blue-400 text-white font-bold rounded-xl text-xs tracking-wider uppercase transition-all shadow-[0_4px_12px_rgba(0,102,255,0.2)] hover:shadow-[0_6px_16px_rgba(0,102,255,0.3)] active:scale-98 flex items-center justify-center gap-2 cursor-pointer"
-              >
-                {loading ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    <span>Securing Access...</span>
-                  </>
-                ) : (
-                  <span>Verify Credentials & Enter Workspace</span>
-                )}
-              </button>
-            </form>
+            renderLoginFormUI()
           ) : activeTab === 'forgot_password' ? (
             /* Forgot Password Form */
             <div className="space-y-4 animate-fade-in">
@@ -1240,11 +1560,12 @@ export default function AuthScreen({
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Phone Number</label>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Phone Number *</label>
                   <div className="relative flex items-center">
                     <Phone className="absolute left-3 w-4.5 h-4.5 text-slate-400" />
                     <input 
                       type="text" 
+                      required
                       placeholder="+91 (555) 019-2834"
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
@@ -1375,8 +1696,7 @@ export default function AuthScreen({
             </form>
           )}
 
-
-
+          {renderGooglePromptUI()}
         </div>
 
       </div>
