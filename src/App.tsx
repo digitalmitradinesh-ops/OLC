@@ -79,9 +79,9 @@ export default function App() {
   const [activeViewMode, setActiveViewMode] = useState<'architect' | 'product'>('product');
   const [approvedSpecs, setApprovedSpecs] = useState(true);
 
-  // Check if sandbox dev tools should be shown (e.g. ?sandbox=true or ?dev=true)
+  // Check if sandbox dev tools should be shown (e.g. ?admin_sandbox=true)
   const showSandboxTools = useMemo(() => {
-    return window.location.search.includes('sandbox=true') || window.location.search.includes('dev=true');
+    return window.location.search.includes('admin_sandbox=true');
   }, []);
 
   // Auto-switch to user product page if user scrolls the specs view

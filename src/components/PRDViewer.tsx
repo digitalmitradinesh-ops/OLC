@@ -22,10 +22,11 @@ import {
 } from 'lucide-react';
 
 interface PRDViewerProps {
-  onApprove: () => void;
+  onApprove?: () => void;
+  hideApprove?: boolean;
 }
 
-export default function PRDViewer({ onApprove }: PRDViewerProps) {
+export default function PRDViewer({ onApprove, hideApprove = false }: PRDViewerProps) {
   const [activeTab, setActiveTab] = useState<'prd' | 'stories' | 'db' | 'api' | 'tree'>('prd');
   const [copied, setCopied] = useState(false);
 
@@ -163,9 +164,9 @@ CREATE INDEX idx_messages_chat ON messages(chat_id);
         <div>
           <div className="flex items-center gap-2 mb-2">
             <span className="px-2.5 py-0.5 bg-blue-500/20 text-blue-400 text-xs font-semibold rounded-full uppercase tracking-wider border border-blue-500/30">
-              Phase 1 Deliverable
+              {hideApprove ? "System Spec Sheet" : "Phase 1 Deliverable"}
             </span>
-            <span className="text-slate-400 text-xs">Awaiting Approval</span>
+            <span className="text-slate-400 text-xs">{hideApprove ? "Approved" : "Awaiting Approval"}</span>
           </div>
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
             LocalMarket Classifieds Architect Spec
@@ -175,13 +176,15 @@ CREATE INDEX idx_messages_chat ON messages(chat_id);
           </p>
         </div>
         
-        <button
-          onClick={onApprove}
-          className="group flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl transition duration-250 shadow-lg shadow-blue-500/20 active:scale-95 cursor-pointer"
-        >
-          <span>Approve Spec & Enter App</span>
-          <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
-        </button>
+        {!hideApprove && onApprove && (
+          <button
+            onClick={onApprove}
+            className="group flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl transition duration-250 shadow-lg shadow-blue-500/20 active:scale-95 cursor-pointer"
+          >
+            <span>Approve Spec & Enter App</span>
+            <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
+          </button>
+        )}
       </div>
 
       <div className="flex flex-col lg:flex-row min-h-[600px]">

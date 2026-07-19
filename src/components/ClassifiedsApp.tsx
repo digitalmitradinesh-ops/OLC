@@ -71,6 +71,7 @@ import AdminMetricsViewer from './AdminMetricsViewer';
 import CategoryAdminPanel from './CategoryAdminPanel';
 import BrandingAdminPanel from './BrandingAdminPanel';
 import WebsiteManagersPanel from './WebsiteManagersPanel';
+import PRDViewer from './PRDViewer';
 
 const getAccountAge = (joinedDateStr: string): string => {
   if (!joinedDateStr) return 'Member';
@@ -197,7 +198,7 @@ export default function ClassifiedsApp({
     return localStorage.getItem('theme') === 'dark';
   });
 
-  const [adminActiveTab, setAdminActiveTab] = useState<'overview' | 'metrics' | 'database' | 'categories' | 'branding' | 'managers'>('overview');
+  const [adminActiveTab, setAdminActiveTab] = useState<'overview' | 'metrics' | 'database' | 'categories' | 'branding' | 'managers' | 'specs'>('overview');
 
   const [websiteName, setWebsiteName] = useState<string>(() => {
     return propWebsiteName || localStorage.getItem('website_name') || 'LocalMarket';
@@ -3689,7 +3690,8 @@ Whether you're a local resident decluttering your home, a professional service a
                   { id: 'database', label: 'PostgreSQL Relational DB (28 Tables)', icon: Database },
                   { id: 'categories', label: `Manage Categories (${categories.length})`, icon: Tag },
                   { id: 'branding', label: 'Website Branding', icon: Globe },
-                  { id: 'managers', label: 'Website Managers Control', icon: ShieldCheck }
+                  { id: 'managers', label: 'Website Managers Control', icon: ShieldCheck },
+                  { id: 'specs', label: 'Architect Specs (PRD & APIs)', icon: BookOpen }
                 );
               } else if (currentUser.role === 'moderator') {
                 const perms = currentUser.managerPermissions || {
@@ -4090,6 +4092,12 @@ Whether you're a local resident decluttering your home, a professional service a
               <WebsiteManagersPanel 
                 token={token} 
               />
+            )}
+
+            {adminActiveTab === 'specs' && (
+              <div className="bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-800 rounded-2xl p-4 shadow-xs">
+                <PRDViewer hideApprove={true} />
+              </div>
             )}
           </div>
           )
