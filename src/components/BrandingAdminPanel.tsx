@@ -93,6 +93,7 @@ interface BrandingAdminPanelProps {
   currentDarkHeaderColor?: string;
   currentShowDemoHub?: boolean;
   currentTitleCase?: string;
+  currentAboutUs?: string;
   onSaveBranding: (
     name: string, 
     logoUrl: string, 
@@ -117,7 +118,8 @@ interface BrandingAdminPanelProps {
     showDemoHub: boolean,
     titleCase: string,
     lightHeaderColor: string,
-    darkHeaderColor: string
+    darkHeaderColor: string,
+    aboutUs: string
   ) => void;
   showToast: (msg: string) => void;
 }
@@ -142,6 +144,7 @@ export default function BrandingAdminPanel({
   currentDarkHeaderColor = '#111827',
   currentShowDemoHub = true,
   currentTitleCase = 'uppercase',
+  currentAboutUs = '',
   onSaveBranding,
   showToast
 }: BrandingAdminPanelProps) {
@@ -214,6 +217,7 @@ export default function BrandingAdminPanel({
   const [copyright, setCopyright] = useState(currentCopyright || `© 2026 ${currentName} Inc.`);
   const [poweredBy, setPoweredBy] = useState(currentPoweredBy || 'Powered by AI Studio Build');
   const [address, setAddress] = useState(currentAddress || '123, Connaught Place, New Delhi, India');
+  const [aboutUs, setAboutUs] = useState(currentAboutUs || '');
   
   // Theme selection states
   const [themeColor, setThemeColor] = useState(currentThemeColor);
@@ -387,7 +391,8 @@ export default function BrandingAdminPanel({
       showDemoHub,
       titleCase,
       lightHeaderColor,
-      darkHeaderColor
+      darkHeaderColor,
+      aboutUs.trim()
     );
   };
 
@@ -397,6 +402,11 @@ export default function BrandingAdminPanel({
     setCopyright('© 2026 LocalMarket Inc.');
     setPoweredBy('Powered by AI Studio Build');
     setAddress('123, Connaught Place, New Delhi, India');
+    setAboutUs(`Welcome to LocalMarket, India's premier, security-verified localized trading marketplace.
+
+Our mission is to establish trust in classified buying and selling. By utilizing secure authentication, cryptographically verified user profiles, in-memory real-time communication modules, and real pincode integration across all Indian states and pin zones, we provide a seamless localized peer-to-peer trading hub.
+
+Whether you're a local resident decluttering your home, a professional service agency offering technical assistance, or a local store manager reaching nearby buyers, our secure classified engine makes local commerce smooth, safe, and lightning fast.`);
     setFacebook('https://facebook.com');
     setTwitter('https://twitter.com');
     setInstagram('https://instagram.com');
@@ -1101,6 +1111,25 @@ export default function BrandingAdminPanel({
                   className="w-full bg-slate-50 dark:bg-slate-800 hover:bg-slate-100/60 dark:hover:bg-slate-700/60 focus:bg-white dark:focus:bg-slate-950 px-3.5 py-2 border border-slate-200 dark:border-slate-800 focus:border-blue-500 rounded-xl text-xs outline-none transition font-semibold text-slate-800 dark:text-slate-100 min-h-[60px] resize-none"
                   required
                 />
+              </div>
+
+              <div className="space-y-1.5 md:col-span-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider block">
+                    About Us Page Content
+                  </label>
+                  <span className="text-[10px] text-slate-400 font-mono">Editable Page Content</span>
+                </div>
+                <textarea
+                  value={aboutUs}
+                  onChange={(e) => setAboutUs(e.target.value)}
+                  placeholder="Tell your visitors about your mission, history, and verified local market operations..."
+                  className="w-full bg-slate-50 dark:bg-slate-800 hover:bg-slate-100/60 dark:hover:bg-slate-700/60 focus:bg-white dark:focus:bg-slate-950 px-3.5 py-2 border border-slate-200 dark:border-slate-800 focus:border-blue-500 rounded-xl text-xs outline-none transition font-semibold text-slate-800 dark:text-slate-100 min-h-[140px]"
+                  required
+                />
+                <p className="text-[10px] text-slate-400 dark:text-slate-500 leading-relaxed font-medium">
+                  This custom narrative is rendered dynamically in the public **About Us** layout. Use simple line breaks to separate paragraphs.
+                </p>
               </div>
             </div>
 

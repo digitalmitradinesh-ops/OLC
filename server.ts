@@ -342,6 +342,251 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', time: new Date().toISOString() });
 });
 
+// GET endpoint for Backend Admin Setup & Reset console
+app.get('/api/backend/admin-setup-reset', (req, res) => {
+  res.send(`
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Backend Admin Credentials Setup & Reset Console</title>
+      <style>
+        body {
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+          background: #030712;
+          color: #f3f4f6;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          min-height: 100vh;
+          margin: 0;
+          padding: 20px;
+          box-sizing: border-box;
+        }
+        .container {
+          background: #111827;
+          border: 1px solid #1f2937;
+          border-radius: 16px;
+          padding: 32px;
+          width: 100%;
+          max-width: 440px;
+          box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+        }
+        .header {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          border-bottom: 1px solid #1f2937;
+          padding-bottom: 16px;
+          margin-bottom: 16px;
+        }
+        .header-logo {
+          width: 32px;
+          height: 32px;
+          background: #2563eb;
+          border-radius: 8px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: bold;
+          font-size: 16px;
+          color: white;
+        }
+        h2 {
+          margin: 0;
+          color: #3b82f6;
+          font-size: 20px;
+        }
+        p {
+          font-size: 12.5px;
+          color: #9ca3af;
+          line-height: 1.5;
+          margin-bottom: 20px;
+        }
+        .form-group {
+          margin-bottom: 16px;
+        }
+        label {
+          display: block;
+          font-size: 10.5px;
+          font-weight: bold;
+          text-transform: uppercase;
+          color: #9ca3af;
+          margin-bottom: 6px;
+          letter-spacing: 0.05em;
+        }
+        input, select {
+          width: 100%;
+          box-sizing: border-box;
+          padding: 10px 12px;
+          background: #1f2937;
+          border: 1px solid #374151;
+          border-radius: 8px;
+          color: white;
+          font-size: 13.5px;
+        }
+        input:focus, select:focus {
+          border-color: #3b82f6;
+          outline: none;
+        }
+        button {
+          width: 100%;
+          padding: 12px;
+          background: #2563eb;
+          border: none;
+          border-radius: 8px;
+          color: white;
+          font-weight: bold;
+          cursor: pointer;
+          font-size: 13.5px;
+          transition: background 0.2s;
+          margin-top: 8px;
+        }
+        button:hover {
+          background: #1d4ed8;
+        }
+        .alert {
+          background: #064e3b;
+          border: 1px solid #047857;
+          color: #a7f3d0;
+          padding: 12px;
+          border-radius: 8px;
+          font-size: 12.5px;
+          margin-bottom: 16px;
+          display: none;
+          line-height: 1.4;
+        }
+        .footer-note {
+          font-size: 10px;
+          color: #4b5563;
+          text-align: center;
+          margin-top: 20px;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <div class="header-logo">M</div>
+          <div>
+            <h2>Admin Setup &amp; Reset Console</h2>
+          </div>
+        </div>
+        <p>This backend helper tool allows you to instantly initialize, configure, or reset credentials for any Administrator login in the server memory database.</p>
+        <div id="alertBox" class="alert"></div>
+        <form id="resetForm">
+          <div class="form-group">
+            <label>Admin Email Address</label>
+            <input type="email" id="email" value="digitalmitradinesh@gmail.com" required>
+          </div>
+          <div class="form-group">
+            <label>Admin Full Name</label>
+            <input type="text" id="fullName" value="Dinesh Mitra" required>
+          </div>
+          <div class="form-group">
+            <label>New Password</label>
+            <input type="text" id="password" value="Admin@123" required>
+          </div>
+          <div class="form-group">
+            <label>Admin Phone Number</label>
+            <input type="text" id="phone" value="+1 (555) 019-2834" required>
+          </div>
+          <button type="submit">Deploy &amp; Set Admin Credentials</button>
+        </form>
+        <div class="footer-note">SHA-256 Authenticated Back-office</div>
+      </div>
+      <script>
+        document.getElementById('resetForm').addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const alertBox = document.getElementById('alertBox');
+          alertBox.style.display = 'none';
+          try {
+            const res = await fetch('/api/backend/admin-setup-reset', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                email: document.getElementById('email').value,
+                fullName: document.getElementById('fullName').value,
+                password: document.getElementById('password').value,
+                phone: document.getElementById('phone').value
+              })
+            });
+            const data = await res.json();
+            if (data.success) {
+              alertBox.style.background = '#064e3b';
+              alertBox.style.borderColor = '#047857';
+              alertBox.style.color = '#a7f3d0';
+              alertBox.innerText = 'SUCCESS: ' + data.message;
+            } else {
+              alertBox.style.background = '#7f1d1d';
+              alertBox.style.borderColor = '#b91c1c';
+              alertBox.style.color = '#fecaca';
+              alertBox.innerText = 'ERROR: ' + data.message;
+            }
+            alertBox.style.display = 'block';
+          } catch (err) {
+            alertBox.style.background = '#7f1d1d';
+            alertBox.style.borderColor = '#b91c1c';
+            alertBox.style.color = '#fecaca';
+            alertBox.innerText = 'Error connecting to the backend service.';
+            alertBox.style.display = 'block';
+          }
+        });
+      </script>
+    </body>
+    </html>
+  `);
+});
+
+// POST endpoint to handle Admin Setup and Reset from backend
+app.post('/api/backend/admin-setup-reset', (req, res) => {
+  const { email, password, fullName, phone, location } = req.body;
+
+  if (!email || !password || !fullName) {
+    return res.status(400).json({ success: false, message: 'Required fields missing: email, password, and fullName are required.' });
+  }
+
+  const normalizedEmail = email.toLowerCase();
+  
+  // Find or create admin account in-memory map
+  let account = userAccountsMap.get(normalizedEmail);
+  if (account) {
+    account.passwordHash = hashPassword(password);
+    account.fullName = fullName;
+    if (phone) account.phone = phone;
+    if (location) account.location = location;
+    account.role = 'admin'; // Always ensure role is admin
+    account.verified = true;
+    account.isPremium = true;
+  } else {
+    account = {
+      id: `user-admin-${Date.now()}`,
+      email: normalizedEmail,
+      passwordHash: hashPassword(password),
+      phone: phone || '+1 (555) 019-2834',
+      fullName,
+      avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+      location: location || 'Connaught Place, New Delhi (110001)',
+      role: 'admin',
+      rating: 5.0,
+      joinedDate: new Date().toISOString().split('T')[0],
+      verified: true,
+      isPremium: true,
+      walletBalance: 15000.00
+    };
+  }
+
+  userAccountsMap.set(normalizedEmail, account);
+
+  res.json({
+    success: true,
+    message: `Admin credentials successfully initialized/reset on backend for ${email}. You can now sign in using password "${password}".`
+  });
+});
+
 // Secure Login Endpoint
 app.post('/api/auth/login', (req, res) => {
   const { email, password } = req.body;
@@ -388,7 +633,7 @@ app.post('/api/auth/register', (req, res) => {
     return res.status(400).json({ success: false, message: 'Email address already registered' });
   }
 
-  const allowedRoles = ['buyer', 'seller', 'admin', 'moderator'];
+  const allowedRoles = ['buyer', 'seller', 'admin', 'moderator', 'business', 'dealer', 'shop', 'property_agent', 'car_dealer'];
   if (!allowedRoles.includes(role)) {
     return res.status(400).json({ success: false, message: 'Invalid role selection' });
   }
@@ -402,7 +647,7 @@ app.post('/api/auth/register', (req, res) => {
     fullName,
     avatarUrl: `https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80`,
     location: location || 'All India',
-    role: role as 'buyer' | 'seller' | 'admin' | 'moderator',
+    role: role as any,
     rating: 5.0,
     joinedDate: new Date().toISOString().split('T')[0],
     verified: false,

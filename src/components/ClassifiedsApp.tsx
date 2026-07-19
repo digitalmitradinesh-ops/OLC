@@ -218,6 +218,14 @@ export default function ClassifiedsApp({
     return propWebsiteAddress || localStorage.getItem('website_address') || '123, Connaught Place, New Delhi, India';
   });
 
+  const [websiteAboutUs, setWebsiteAboutUs] = useState<string>(() => {
+    return localStorage.getItem('website_about_us') || `Welcome to ${propWebsiteName || 'LocalMarket'}, India's premier, security-verified localized trading marketplace.
+
+Our mission is to establish trust in classified buying and selling. By utilizing secure authentication, cryptographically verified user profiles, in-memory real-time communication modules, and real pincode integration across all Indian states and pin zones, we provide a seamless localized peer-to-peer trading hub.
+
+Whether you're a local resident decluttering your home, a professional service agency offering technical assistance, or a local store manager reaching nearby buyers, our secure classified engine makes local commerce smooth, safe, and lightning fast.`;
+  });
+
   const [websiteSocials, setWebsiteSocials] = useState<{
     facebook: string;
     twitter: string;
@@ -477,7 +485,7 @@ export default function ClassifiedsApp({
   }, [token]);
 
   // Nav / View states
-  const [currentView, setCurrentView] = useState<'buy' | 'sell' | 'chats' | 'dashboard' | 'admin' | 'directory' | 'privacy'>('buy');
+  const [currentView, setCurrentView] = useState<'buy' | 'sell' | 'chats' | 'dashboard' | 'admin' | 'directory' | 'privacy' | 'about'>('buy');
   const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
   const [selectedChat, setSelectedChat] = useState<Chat | null>(null);
 
@@ -841,13 +849,15 @@ export default function ClassifiedsApp({
     showDemoHub: boolean = true,
     titleCase: string = 'uppercase',
     lightHeaderColor: string = '#ffffff',
-    darkHeaderColor: string = '#111827'
+    darkHeaderColor: string = '#111827',
+    aboutUs: string = ''
   ) => {
     setWebsiteName(name);
     setWebsiteLogoUrl(logoUrl);
     setWebsiteCopyright(copyright);
     setWebsitePoweredBy(poweredBy);
     setWebsiteAddress(address);
+    setWebsiteAboutUs(aboutUs);
     setWebsiteSocials(socials);
     setWebsiteThemeColor(themeColor);
     setWebsiteThemeCustomColor(themeCustomColor);
@@ -866,6 +876,7 @@ export default function ClassifiedsApp({
     localStorage.setItem('website_copyright', copyright);
     localStorage.setItem('website_powered_by', poweredBy);
     localStorage.setItem('website_address', address);
+    localStorage.setItem('website_about_us', aboutUs);
     localStorage.setItem('website_socials', JSON.stringify(socials));
     localStorage.setItem('website_theme_color', themeColor);
     localStorage.setItem('website_theme_custom_color', themeCustomColor);
@@ -882,7 +893,7 @@ export default function ClassifiedsApp({
     if (onUpdateBranding) {
       onUpdateBranding(name, logoUrl, copyright, poweredBy, address, socials, themeColor, themeCustomColor, logoSize, logoShape, logoFit, logoBg);
     }
-    showToast('Website branding, backgrounds, header colors, custom logo rendering, and theme updated successfully!');
+    showToast('Website branding, backgrounds, header colors, custom about-us narrative, custom logo rendering, and theme updated successfully!');
   };
 
   // Favorite toggle
@@ -3988,6 +3999,7 @@ export default function ClassifiedsApp({
                 currentDarkHeaderColor={websiteDarkHeaderColor}
                 currentShowDemoHub={websiteShowDemoHub}
                 currentTitleCase={websiteTitleCase}
+                currentAboutUs={websiteAboutUs}
                 onSaveBranding={handleSaveBranding}
                 showToast={showToast}
               />
@@ -4438,6 +4450,73 @@ export default function ClassifiedsApp({
           </div>
         )}
 
+        {/* 9. ABOUT US VIEW */}
+        {currentView === 'about' && (
+          <div className="max-w-4xl mx-auto space-y-8 animate-fade-in text-slate-800 dark:text-slate-100">
+            {/* Header section with branding */}
+            <div className="border-b border-slate-200 dark:border-slate-800 pb-5">
+              <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+                <Info className="w-6 h-6 text-blue-600" />
+                About Our Platform
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1">
+                Verified Local Commerce & Security-First Classified Peer-To-Peer Directory
+              </p>
+            </div>
+
+            {/* About Us Content block */}
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 md:p-10 space-y-6 shadow-xs leading-relaxed">
+              <div className="flex flex-col md:flex-row items-start md:items-center gap-6 pb-6 border-b border-slate-150 dark:border-slate-800/80">
+                <div className="w-16 h-16 rounded-2xl bg-blue-50 dark:bg-blue-950/40 flex items-center justify-center shrink-0 border border-blue-100/50 dark:border-blue-900/30">
+                  <Globe className="w-8 h-8 text-blue-600 dark:text-blue-450" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-slate-950 dark:text-white">
+                    {websiteName} Local Directory
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
+                    Empowering local residents, verified dealers, and shops across Indian states.
+                  </p>
+                </div>
+              </div>
+
+              {/* Dynamic Paragraph Rendering */}
+              <div className="space-y-5 text-xs md:text-sm text-slate-600 dark:text-slate-350 font-medium leading-relaxed">
+                {websiteAboutUs.split('\n\n').filter(Boolean).map((para, i) => (
+                  <p key={i} className="whitespace-pre-line bg-slate-50/50 dark:bg-slate-850/20 p-4 rounded-2xl border border-slate-100 dark:border-slate-800/40">
+                    {para}
+                  </p>
+                ))}
+              </div>
+
+              {/* Trust parameters banner */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-6 border-t border-slate-150 dark:border-slate-800/80">
+                <div className="p-4 bg-slate-50 dark:bg-slate-850/40 rounded-2xl border border-slate-200/50 dark:border-slate-800/60 text-center">
+                  <span className="block text-xl font-black text-blue-600">100% Real</span>
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase font-black tracking-wider block mt-1">Verified Sellers Only</span>
+                </div>
+                <div className="p-4 bg-slate-50 dark:bg-slate-850/40 rounded-2xl border border-slate-200/50 dark:border-slate-800/60 text-center">
+                  <span className="block text-xl font-black text-emerald-600">Secure</span>
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase font-black tracking-wider block mt-1">Direct Chat & Pin Lookup</span>
+                </div>
+                <div className="p-4 bg-slate-50 dark:bg-slate-850/40 rounded-2xl border border-slate-200/50 dark:border-slate-800/60 text-center">
+                  <span className="block text-xl font-black text-indigo-600">Local</span>
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase font-black tracking-wider block mt-1">Nearest Area Trades</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-center pb-6">
+              <button
+                onClick={() => { setSelectedListing(null); setCurrentView('buy'); }}
+                className="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl transition-all shadow-md cursor-pointer flex items-center gap-1.5"
+              >
+                Return to Buyer Feed
+              </button>
+            </div>
+          </div>
+        )}
+
       </main>
 
       {/* Portal Footer Section */}
@@ -4557,6 +4636,11 @@ export default function ClassifiedsApp({
                 <li>
                   <button onClick={() => { setSelectedListing(null); setCurrentView('privacy'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="hover:text-blue-600 dark:hover:text-blue-400 transition cursor-pointer">
                     Privacy Policy & Guidelines
+                  </button>
+                </li>
+                <li>
+                  <button onClick={() => { setSelectedListing(null); setCurrentView('about'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="hover:text-blue-600 dark:hover:text-blue-400 transition cursor-pointer text-blue-600 dark:text-blue-400 font-bold">
+                    About Us
                   </button>
                 </li>
               </ul>

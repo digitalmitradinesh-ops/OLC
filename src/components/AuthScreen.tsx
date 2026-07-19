@@ -607,6 +607,39 @@ export default function AuthScreen({ onLoginSuccess, isDarkMode = false, setIsDa
                     </div>
                   </div>
 
+                  {/* Admin Password Recovery Helper */}
+                  <div className="p-3.5 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-200/60 dark:border-slate-800/80 text-[11px] text-slate-500 dark:text-slate-400 space-y-2.5">
+                    <div className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                      <ShieldCheck className="w-4 h-4 text-blue-500 shrink-0" />
+                      <span>Admin Password Recovery Helper</span>
+                    </div>
+                    <p className="leading-relaxed">
+                      Need to recover the Admin credentials via Email or SMS/mobile? Toggle your preferred medium and auto-fill the admin details to request a simulated OTP code instantly:
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setForgotMethod('email');
+                          setForgotIdentifier('digitalmitradinesh@gmail.com');
+                        }}
+                        className="px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg text-[10px] font-black transition dark:bg-blue-950/40 dark:hover:bg-blue-950/80 dark:text-blue-300 dark:border-blue-900/50 cursor-pointer"
+                      >
+                        Auto-fill Admin Email
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setForgotMethod('mobile');
+                          setForgotIdentifier('+1 (555) 019-2834');
+                        }}
+                        className="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg text-[10px] font-black transition dark:bg-emerald-950/40 dark:hover:bg-emerald-950/80 dark:text-emerald-300 dark:border-emerald-900/50 cursor-pointer"
+                      >
+                        Auto-fill Admin Mobile
+                      </button>
+                    </div>
+                  </div>
+
                   <div className="flex items-center justify-between pt-2">
                     <button
                       type="button"
@@ -723,6 +756,36 @@ export default function AuthScreen({ onLoginSuccess, isDarkMode = false, setIsDa
           ) : (
             /* Register Form */
             <form onSubmit={handleRegisterSubmit} className="space-y-4">
+              {/* Account Type Selection Highlights */}
+              <div className="bg-slate-50 dark:bg-slate-800/30 p-3.5 rounded-2xl border border-slate-200/50 dark:border-slate-800/80 space-y-2">
+                <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider block">
+                  Select Account Profile Type
+                </span>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setRole('buyer')}
+                    className={`p-3 rounded-xl border text-xs font-black transition-all flex flex-col items-center justify-center gap-1.5 cursor-pointer ${role === 'buyer' ? 'border-blue-500 bg-blue-50/50 text-blue-600 dark:bg-blue-950/25 dark:text-blue-400' : 'border-slate-200 dark:border-slate-800 hover:bg-slate-100/50 dark:hover:bg-slate-800/50 text-slate-500 dark:text-slate-400'}`}
+                  >
+                    <User className="w-4.5 h-4.5 text-blue-500 shrink-0" />
+                    <span>Buyer Profile</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRole('seller')}
+                    className={`p-3 rounded-xl border text-xs font-black transition-all flex flex-col items-center justify-center gap-1.5 cursor-pointer ${role === 'seller' ? 'border-emerald-500 bg-emerald-50/50 text-emerald-600 dark:bg-emerald-950/25 dark:text-emerald-400' : 'border-slate-200 dark:border-slate-800 hover:bg-slate-100/50 dark:hover:bg-slate-800/50 text-slate-500 dark:text-slate-400'}`}
+                  >
+                    <Tag className="w-4.5 h-4.5 text-emerald-500 shrink-0" />
+                    <span>Seller Profile</span>
+                  </button>
+                </div>
+                <p className="text-[10px] text-slate-400 dark:text-slate-500 leading-relaxed font-medium">
+                  {role === 'buyer' 
+                    ? 'Perfect for browsing active classified listings, saving favorites, and sending verified buyer messages.'
+                    : 'Best for local sellers, stores, businesses, and agents to post classified listings and manage advertisements.'}
+                </p>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Full Name *</label>
