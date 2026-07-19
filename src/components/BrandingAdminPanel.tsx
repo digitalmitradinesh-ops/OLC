@@ -89,7 +89,10 @@ interface BrandingAdminPanelProps {
   currentLogoBg?: string;
   currentLightBgColor?: string;
   currentDarkBgColor?: string;
+  currentLightHeaderColor?: string;
+  currentDarkHeaderColor?: string;
   currentShowDemoHub?: boolean;
+  currentTitleCase?: string;
   onSaveBranding: (
     name: string, 
     logoUrl: string, 
@@ -111,7 +114,10 @@ interface BrandingAdminPanelProps {
     logoBg: string,
     lightBgColor: string,
     darkBgColor: string,
-    showDemoHub: boolean
+    showDemoHub: boolean,
+    titleCase: string,
+    lightHeaderColor: string,
+    darkHeaderColor: string
   ) => void;
   showToast: (msg: string) => void;
 }
@@ -132,11 +138,15 @@ export default function BrandingAdminPanel({
   currentLogoBg = 'transparent',
   currentLightBgColor = '#f8fafc',
   currentDarkBgColor = '#030712',
+  currentLightHeaderColor = '#ffffff',
+  currentDarkHeaderColor = '#111827',
   currentShowDemoHub = true,
+  currentTitleCase = 'uppercase',
   onSaveBranding,
   showToast
 }: BrandingAdminPanelProps) {
   const [websiteName, setWebsiteName] = useState(currentName);
+  const [titleCase, setTitleCase] = useState(currentTitleCase);
   
   // Gemini API Key config states
   const [geminiApiKeyInput, setGeminiApiKeyInput] = useState('');
@@ -212,6 +222,8 @@ export default function BrandingAdminPanel({
   // Background color states
   const [lightBgColor, setLightBgColor] = useState(currentLightBgColor);
   const [darkBgColor, setDarkBgColor] = useState(currentDarkBgColor);
+  const [lightHeaderColor, setLightHeaderColor] = useState(currentLightHeaderColor);
+  const [darkHeaderColor, setDarkHeaderColor] = useState(currentDarkHeaderColor);
   const [showDemoHub, setShowDemoHub] = useState(currentShowDemoHub);
 
   // Logo settings states
@@ -372,7 +384,10 @@ export default function BrandingAdminPanel({
       logoBg,
       lightBgColor,
       darkBgColor,
-      showDemoHub
+      showDemoHub,
+      titleCase,
+      lightHeaderColor,
+      darkHeaderColor
     );
   };
 
@@ -395,6 +410,9 @@ export default function BrandingAdminPanel({
     setLogoBg('transparent');
     setLightBgColor('#f8fafc');
     setDarkBgColor('#030712');
+    setLightHeaderColor('#ffffff');
+    setDarkHeaderColor('#111827');
+    setTitleCase('uppercase');
     setImageDetails(null);
     showToast('Branding forms reset to defaults.');
   };
@@ -435,6 +453,25 @@ export default function BrandingAdminPanel({
                 </div>
                 <p className="text-[10px] text-slate-400">
                   This sets the brand title rendered in the global header, document title, meta tags, and schema markers.
+                </p>
+              </div>
+
+              {/* Title Case Selection - uppercase, lowercase, mixed case (as typed) */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider block">
+                  Header Title Case Style
+                </label>
+                <select
+                  value={titleCase}
+                  onChange={(e) => setTitleCase(e.target.value)}
+                  className="w-full bg-slate-50 dark:bg-slate-800 hover:bg-slate-100/60 dark:hover:bg-slate-700/60 focus:bg-white dark:focus:bg-slate-950 px-3.5 py-2.5 border border-slate-200 dark:border-slate-800 focus:border-blue-500 rounded-xl text-xs outline-none transition font-semibold text-slate-800 dark:text-slate-100"
+                >
+                  <option value="uppercase">Forced UPPERCASE (e.g. OLC CLASSIFIED INDIA)</option>
+                  <option value="as_typed">As Typed / Mixed Case (e.g. Olc Classified India)</option>
+                  <option value="lowercase">Forced lowercase (e.g. olc classified india)</option>
+                </select>
+                <p className="text-[10px] text-slate-400">
+                  Controls whether the header logo title forces uppercase, displays lowercase, or keeps your exact typed letters.
                 </p>
               </div>
 
@@ -879,6 +916,138 @@ export default function BrandingAdminPanel({
                       }}
                       className="w-full bg-slate-50 dark:bg-slate-950 px-2 py-1 border border-slate-200 dark:border-slate-850 rounded-md text-xs font-mono font-bold outline-none uppercase text-slate-800 dark:text-slate-100"
                     />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Header Colors Customization */}
+            <div className="border-t border-slate-100 dark:border-slate-800/60 pt-5 space-y-4">
+              <div>
+                <h4 className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider block">
+                  Header Color Configuration
+                </h4>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                  Customize the background color of the sticky top header for both light mode and dark mode.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Light Mode Header */}
+                <div className="p-4 bg-slate-50 dark:bg-slate-800/30 rounded-2xl border border-slate-100 dark:border-slate-850 space-y-3">
+                  <span className="text-[10px] font-bold text-slate-600 dark:text-slate-350 uppercase tracking-wide block">
+                    Light Mode Header Background
+                  </span>
+                  
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      { hex: '#ffffff', name: 'Clean White' },
+                      { hex: '#f8fafc', name: 'Snow Slate' },
+                      { hex: '#fafaf2', name: 'Warm Cream' },
+                      { hex: '#f1f7f5', name: 'Mint Light' },
+                      { hex: '#e0f2fe', name: 'Sky Tint' },
+                    ].map((preset) => (
+                      <button
+                        key={preset.hex}
+                        type="button"
+                        onClick={() => setLightHeaderColor(preset.hex)}
+                        className={`px-2.5 py-1 rounded-lg border text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                          lightHeaderColor.toLowerCase() === preset.hex.toLowerCase()
+                            ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 font-extrabold'
+                            : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400'
+                        }`}
+                      >
+                        <span className="w-2.5 h-2.5 rounded-full border border-black/10 dark:border-white/10" style={{ backgroundColor: preset.hex }} />
+                        <span>{preset.name}</span>
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="flex items-center gap-3 p-2 bg-white dark:bg-slate-900/60 rounded-xl border border-slate-100 dark:border-slate-800/60 max-w-xs">
+                    <input
+                      type="color"
+                      value={lightHeaderColor}
+                      onChange={(e) => setLightHeaderColor(e.target.value)}
+                      className="w-8 h-8 rounded-lg cursor-pointer border-0 p-0"
+                      title="Choose custom light header background color"
+                    />
+                    <div className="flex-1 space-y-0.5">
+                      <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest block">
+                        Custom Light Hex
+                      </label>
+                      <input
+                        type="text"
+                        value={lightHeaderColor}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val.startsWith('#') && val.length <= 7) {
+                            setLightHeaderColor(val);
+                          } else if (!val.startsWith('#') && val.length <= 6) {
+                            setLightHeaderColor('#' + val);
+                          }
+                        }}
+                        className="w-full bg-slate-50 dark:bg-slate-950 px-2 py-0.5 border border-slate-200 dark:border-slate-850 rounded text-[10px] font-mono font-bold outline-none uppercase text-slate-800 dark:text-slate-100"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Dark Mode Header */}
+                <div className="p-4 bg-slate-50 dark:bg-slate-800/30 rounded-2xl border border-slate-100 dark:border-slate-850 space-y-3">
+                  <span className="text-[10px] font-bold text-slate-600 dark:text-slate-350 uppercase tracking-wide block">
+                    Dark Mode Header Background
+                  </span>
+                  
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      { hex: '#111827', name: 'Dark Slate' },
+                      { hex: '#0f172a', name: 'Navy Slate' },
+                      { hex: '#030712', name: 'Pitch Black' },
+                      { hex: '#1e1b4b', name: 'Indigo Night' },
+                      { hex: '#1f2937', name: 'Cool Gray' },
+                    ].map((preset) => (
+                      <button
+                        key={preset.hex}
+                        type="button"
+                        onClick={() => setDarkHeaderColor(preset.hex)}
+                        className={`px-2.5 py-1 rounded-lg border text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                          darkHeaderColor.toLowerCase() === preset.hex.toLowerCase()
+                            ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 font-extrabold'
+                            : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400'
+                        }`}
+                      >
+                        <span className="w-2.5 h-2.5 rounded-full border border-black/10 dark:border-white/10" style={{ backgroundColor: preset.hex }} />
+                        <span>{preset.name}</span>
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="flex items-center gap-3 p-2 bg-white dark:bg-slate-900/60 rounded-xl border border-slate-100 dark:border-slate-800/60 max-w-xs">
+                    <input
+                      type="color"
+                      value={darkHeaderColor}
+                      onChange={(e) => setDarkHeaderColor(e.target.value)}
+                      className="w-8 h-8 rounded-lg cursor-pointer border-0 p-0"
+                      title="Choose custom dark header background color"
+                    />
+                    <div className="flex-1 space-y-0.5">
+                      <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest block">
+                        Custom Dark Hex
+                      </label>
+                      <input
+                        type="text"
+                        value={darkHeaderColor}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val.startsWith('#') && val.length <= 7) {
+                            setDarkHeaderColor(val);
+                          } else if (!val.startsWith('#') && val.length <= 6) {
+                            setDarkHeaderColor('#' + val);
+                          }
+                        }}
+                        className="w-full bg-slate-50 dark:bg-slate-950 px-2 py-0.5 border border-slate-200 dark:border-slate-850 rounded text-[10px] font-mono font-bold outline-none uppercase text-slate-800 dark:text-slate-100"
+                      />
+                    </div>
                   </div>
                 </div>
               </div>

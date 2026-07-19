@@ -76,8 +76,29 @@ function getThemeHexes(themeColor: string, customColor: string) {
 
 export default function App() {
   // Mode toggles between 'architect' specs view and 'product' marketplace view
-  const [activeViewMode, setActiveViewMode] = useState<'architect' | 'product'>('architect');
-  const [approvedSpecs, setApprovedSpecs] = useState(false);
+  const [activeViewMode, setActiveViewMode] = useState<'architect' | 'product'>('product');
+  const [approvedSpecs, setApprovedSpecs] = useState(true);
+
+  // Check if sandbox dev tools should be shown (e.g. ?sandbox=true or ?dev=true)
+  const showSandboxTools = useMemo(() => {
+    return window.location.search.includes('sandbox=true') || window.location.search.includes('dev=true');
+  }, []);
+
+  // Auto-switch to user product page if user scrolls the specs view
+  React.useEffect(() => {
+    if (activeViewMode === 'architect') {
+      const handleScroll = () => {
+        if (window.scrollY > 100) {
+          setApprovedSpecs(true);
+          setActiveViewMode('product');
+        }
+      };
+      window.addEventListener('scroll', handleScroll, { passive: true });
+      return () => {
+        window.removeEventListener('scroll', handleScroll);
+      };
+    }
+  }, [activeViewMode]);
 
   const [websiteName, setWebsiteName] = useState<string>(() => {
     return localStorage.getItem('website_name') || 'LocalMarket';
@@ -132,55 +153,57 @@ export default function App() {
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans transition-colors duration-200" style={themeStyle}>
       
       {/* Dev Navigation Top Bar */}
-      <div className="bg-slate-900 border-b border-slate-800 px-4 md:px-8 py-2.5 flex flex-col sm:flex-row items-center justify-between gap-3 text-white z-50 shadow-md">
-        <div className="flex items-center gap-3">
-          <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
-          <span className="text-[11px] font-mono tracking-widest text-slate-400 uppercase">
-            {websiteName} Fullstack Sandbox Environment
-          </span>
-        </div>
+      {showSandboxTools && (
+        <div className="bg-slate-900 border-b border-slate-800 px-4 md:px-8 py-2.5 flex flex-col sm:flex-row items-center justify-between gap-3 text-white z-50 shadow-md">
+          <div className="flex items-center gap-3">
+            <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
+            <span className="text-[11px] font-mono tracking-widest text-slate-400 uppercase">
+              {websiteName} Fullstack Sandbox Environment
+            </span>
+          </div>
 
-        {/* View Mode Selectors */}
-        <div className="flex items-center bg-slate-800 rounded-xl p-1 border border-slate-700">
-          <button
-            onClick={() => setActiveViewMode('architect')}
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
-              activeViewMode === 'architect' 
-                ? 'bg-blue-600 text-white shadow-xs' 
-                : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            <Layers className="w-3.5 h-3.5" />
-            <span>Architect Specs (Phase 1)</span>
-          </button>
-          
-          <button
-            onClick={() => setActiveViewMode('product')}
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer relative ${
-              activeViewMode === 'product' 
-                ? 'bg-blue-600 text-white shadow-xs' 
-                : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            <Play className="w-3.5 h-3.5" />
-            <span>Interactive Classifieds (Phase 2-4)</span>
-            {!approvedSpecs && (
-              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-amber-500 rounded-full"></span>
-            )}
-          </button>
+          {/* View Mode Selectors */}
+          <div className="flex items-center bg-slate-800 rounded-xl p-1 border border-slate-700">
+            <button
+              onClick={() => setActiveViewMode('architect')}
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                activeViewMode === 'architect' 
+                  ? 'bg-blue-600 text-white shadow-xs' 
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Layers className="w-3.5 h-3.5" />
+              <span>Architect Specs (Phase 1)</span>
+            </button>
+            
+            <button
+              onClick={() => setActiveViewMode('product')}
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer relative ${
+                activeViewMode === 'product' 
+                  ? 'bg-blue-600 text-white shadow-xs' 
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Play className="w-3.5 h-3.5" />
+              <span>Interactive Classifieds (Phase 2-4)</span>
+              {!approvedSpecs && (
+                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-amber-500 rounded-full"></span>
+              )}
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Main Container */}
       <div className="flex-1 flex flex-col">
-        {activeViewMode === 'architect' ? (
+        {showSandboxTools && activeViewMode === 'architect' ? (
           <div className="flex-1 p-4 md:p-6 flex flex-col justify-center">
             <PRDViewer onApprove={handleApproveSpec} />
           </div>
         ) : (
           <div className="flex-1 animate-fade-in">
             {/* Soft reminder if specs aren't approved yet */}
-            {!approvedSpecs && (
+            {showSandboxTools && !approvedSpecs && (
               <div className="bg-amber-500/10 border-b border-amber-500/20 text-amber-800 px-4 py-2.5 text-center text-xs font-semibold flex items-center justify-center gap-1.5">
                 <Info className="w-4 h-4 text-amber-600 shrink-0" />
                 <span>You are exploring the Interactive Classifieds Prototype. You can switch back to the "Architect Specs" tab to inspect the Database Schema or API endpoints anytime.</span>
@@ -213,28 +236,30 @@ export default function App() {
       </div>
 
       {/* Workspace Simple Footer */}
-      <footer className="bg-white border-t border-slate-100 py-4 px-6 flex flex-col sm:flex-row justify-between items-center gap-3 text-slate-400 text-[10px] font-mono">
-        <div className="flex items-center gap-2">
-          {websiteLogoUrl ? (
-            <img src={websiteLogoUrl} alt="Logo" className="w-6 h-6 rounded-md object-contain bg-slate-50 border border-slate-250 p-0.5" />
-          ) : (
-            <div className="w-5 h-5 bg-blue-600 rounded-md flex items-center justify-center text-[8px] text-white font-extrabold font-sans">
-              LM
-            </div>
-          )}
-          <span>{websiteCopyright || `© 2026 ${websiteName} Inc.`} | {websitePoweredBy || 'Powered by AI Studio Build'}</span>
-        </div>
-        <div className="flex items-center gap-4">
-          <span className="flex items-center gap-1">
-            <Database className="w-3.5 h-3.5 text-slate-300" />
-            <span>PostgreSQL Active</span>
-          </span>
-          <span className="flex items-center gap-1">
-            <Sparkles className="w-3.5 h-3.5 text-blue-400" />
-            <span>Gemini AI Connected</span>
-          </span>
-        </div>
-      </footer>
+      {showSandboxTools && (
+        <footer className="bg-white border-t border-slate-100 py-4 px-6 flex flex-col sm:flex-row justify-between items-center gap-3 text-slate-400 text-[10px] font-mono">
+          <div className="flex items-center gap-2">
+            {websiteLogoUrl ? (
+              <img src={websiteLogoUrl} alt="Logo" className="w-6 h-6 rounded-md object-contain bg-slate-50 border border-slate-250 p-0.5" />
+            ) : (
+              <div className="w-5 h-5 bg-blue-600 rounded-md flex items-center justify-center text-[8px] text-white font-extrabold font-sans">
+                LM
+              </div>
+            )}
+            <span>{websiteCopyright || `© 2026 ${websiteName} Inc.`} | {websitePoweredBy || 'Powered by AI Studio Build'}</span>
+          </div>
+          <div className="flex items-center gap-4">
+            <span className="flex items-center gap-1">
+              <Database className="w-3.5 h-3.5 text-slate-300" />
+              <span>PostgreSQL Active</span>
+            </span>
+            <span className="flex items-center gap-1">
+              <Sparkles className="w-3.5 h-3.5 text-blue-400" />
+              <span>Gemini AI Connected</span>
+            </span>
+          </div>
+        </footer>
+      )}
 
     </div>
   );

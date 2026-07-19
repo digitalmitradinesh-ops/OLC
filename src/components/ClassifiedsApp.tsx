@@ -283,6 +283,18 @@ export default function ClassifiedsApp({
     return propWebsiteLogoBg || localStorage.getItem('website_logo_bg') || 'transparent';
   });
 
+  const [websiteTitleCase, setWebsiteTitleCase] = useState<string>(() => {
+    return localStorage.getItem('website_title_case') || 'uppercase';
+  });
+
+  const [websiteLightHeaderColor, setWebsiteLightHeaderColor] = useState<string>(() => {
+    return localStorage.getItem('website_light_header_color') || '#ffffff';
+  });
+
+  const [websiteDarkHeaderColor, setWebsiteDarkHeaderColor] = useState<string>(() => {
+    return localStorage.getItem('website_dark_header_color') || '#111827';
+  });
+
   useEffect(() => {
     if (propWebsiteLogoSize) {
       setWebsiteLogoSize(propWebsiteLogoSize);
@@ -465,7 +477,7 @@ export default function ClassifiedsApp({
   }, [token]);
 
   // Nav / View states
-  const [currentView, setCurrentView] = useState<'buy' | 'sell' | 'chats' | 'dashboard' | 'admin' | 'directory'>('buy');
+  const [currentView, setCurrentView] = useState<'buy' | 'sell' | 'chats' | 'dashboard' | 'admin' | 'directory' | 'privacy'>('buy');
   const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
   const [selectedChat, setSelectedChat] = useState<Chat | null>(null);
 
@@ -826,7 +838,10 @@ export default function ClassifiedsApp({
     logoBg: string = 'transparent',
     lightBgColor: string = '#f8fafc',
     darkBgColor: string = '#030712',
-    showDemoHub: boolean = true
+    showDemoHub: boolean = true,
+    titleCase: string = 'uppercase',
+    lightHeaderColor: string = '#ffffff',
+    darkHeaderColor: string = '#111827'
   ) => {
     setWebsiteName(name);
     setWebsiteLogoUrl(logoUrl);
@@ -843,6 +858,9 @@ export default function ClassifiedsApp({
     setWebsiteLightBgColor(lightBgColor);
     setWebsiteDarkBgColor(darkBgColor);
     setWebsiteShowDemoHub(showDemoHub);
+    setWebsiteTitleCase(titleCase);
+    setWebsiteLightHeaderColor(lightHeaderColor);
+    setWebsiteDarkHeaderColor(darkHeaderColor);
     localStorage.setItem('website_name', name);
     localStorage.setItem('website_logo_url', logoUrl);
     localStorage.setItem('website_copyright', copyright);
@@ -857,11 +875,14 @@ export default function ClassifiedsApp({
     localStorage.setItem('website_logo_bg', logoBg);
     localStorage.setItem('website_light_bg_color', lightBgColor);
     localStorage.setItem('website_dark_bg_color', darkBgColor);
+    localStorage.setItem('website_light_header_color', lightHeaderColor);
+    localStorage.setItem('website_dark_header_color', darkHeaderColor);
     localStorage.setItem('website_show_demo_hub', String(showDemoHub));
+    localStorage.setItem('website_title_case', titleCase);
     if (onUpdateBranding) {
       onUpdateBranding(name, logoUrl, copyright, poweredBy, address, socials, themeColor, themeCustomColor, logoSize, logoShape, logoFit, logoBg);
     }
-    showToast('Website branding, backgrounds, custom logo rendering, and theme updated successfully!');
+    showToast('Website branding, backgrounds, header colors, custom logo rendering, and theme updated successfully!');
   };
 
   // Favorite toggle
@@ -1480,9 +1501,17 @@ export default function ClassifiedsApp({
         .dark .border-slate-850 {
           border-color: ${darkBorderColor}4d !important;
         }
+
+        /* Dynamic Header Overrides */
+        .custom-header-bg {
+          background-color: ${websiteLightHeaderColor} !important;
+        }
+        .dark .custom-header-bg {
+          background-color: ${websiteDarkHeaderColor} !important;
+        }
       `}</style>
     );
-  }, [websiteLightBgColor, websiteDarkBgColor]);
+  }, [websiteLightBgColor, websiteDarkBgColor, websiteLightHeaderColor, websiteDarkHeaderColor]);
 
   if (isAuthLoading) {
     return (
@@ -1523,7 +1552,7 @@ export default function ClassifiedsApp({
       )}
 
       {/* Header Panel */}
-      <header className="sticky top-0 z-40 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shadow-xs px-4 md:px-8 py-3.5 flex items-center justify-between gap-4 transition-colors duration-300">
+      <header className="sticky top-0 z-40 custom-header-bg border-b border-slate-200 dark:border-slate-800 shadow-xs px-4 md:px-8 py-3.5 flex items-center justify-between gap-4 transition-colors duration-300">
         {/* Logo */}
         <div className="flex items-center gap-2.5 cursor-pointer shrink-0" onClick={() => { setSelectedListing(null); setCurrentView('buy'); }}>
           <div className={getLogoContainerClass(false)}>
@@ -1543,7 +1572,11 @@ export default function ClassifiedsApp({
               </>
             ) : (
               <span className="text-lg font-black tracking-tight text-blue-600 dark:text-blue-400">
-                {websiteName.toUpperCase()}
+                {websiteTitleCase === 'as_typed' 
+                  ? websiteName 
+                  : websiteTitleCase === 'lowercase' 
+                  ? websiteName.toLowerCase() 
+                  : websiteName.toUpperCase()}
               </span>
             )}
           </div>
@@ -1785,31 +1818,6 @@ export default function ClassifiedsApp({
         {/* Action Controls */}
         <div className="flex items-center gap-3">
           {/* Authenticated User Session Info & Logout */}
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl max-w-[240px]">
-            <img 
-              src={currentUser.profilePhotoUrl || currentUser.avatarUrl} 
-              alt={currentUser.fullName} 
-              className="w-7 h-7 rounded-full object-cover border border-white shadow-xs shrink-0" 
-            />
-            <div className="min-w-0 flex-1">
-              <div className="text-[10.5px] font-black text-slate-800 truncate leading-none">
-                {currentUser.fullName}
-              </div>
-              <div className="flex items-center gap-1 mt-0.5">
-                <span className={`text-[8.5px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider ${
-                  currentUser.role === 'admin' 
-                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
-                    : currentUser.role === 'moderator'
-                    ? 'bg-purple-50 text-purple-700 border border-purple-200'
-                    : currentUser.role === 'seller'
-                    ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                    : 'bg-slate-100 text-slate-700 border border-slate-200'
-                }`}>
-                  {currentUser.role}
-                </span>
-              </div>
-            </div>
-          </div>
 
           <button
             onClick={() => {
@@ -1836,7 +1844,7 @@ export default function ClassifiedsApp({
             onClick={() => { setSelectedListing(null); setCurrentView('buy'); }}
             className={`px-3.5 py-2 rounded-xl text-xs font-bold cursor-pointer transition-all ${currentView === 'buy' ? 'bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-350 hover:bg-slate-50 dark:hover:bg-slate-800/60'}`}
           >
-            Explore
+            Buyer
           </button>
           
           <button 
@@ -1851,20 +1859,13 @@ export default function ClassifiedsApp({
             )}
           </button>
 
-          {(currentUser.role === 'admin' || currentUser.role === 'moderator') && (
-            <button 
-              onClick={() => { setSelectedListing(null); setCurrentView('admin'); }}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold cursor-pointer transition-all ${currentView === 'admin' ? 'bg-blue-50 text-blue-600' : 'text-slate-600 hover:bg-slate-50'}`}
-            >
-              {currentUser.role === 'admin' ? 'Admin Panel' : 'Manager Panel'}
-            </button>
-          )}
+          {/* Admin panel controls shifted to footer */}
 
           <button 
             onClick={() => setCurrentView('dashboard')}
             className={`px-3.5 py-2 rounded-xl text-xs font-bold cursor-pointer transition-all ${currentView === 'dashboard' ? 'bg-blue-50 text-blue-600' : 'text-slate-600 hover:bg-slate-50'}`}
           >
-            Sellers Area
+            Seller
           </button>
 
           <button 
@@ -2642,12 +2643,67 @@ export default function ClassifiedsApp({
                   const displayYear = joinedDateVal.includes('-') 
                     ? new Date(joinedDateVal).getFullYear() 
                     : joinedDateVal.split(' ').pop();
+
+                  // Calculate months since join date to determine experience level
+                  const getMonthsSinceJoin = (joinedDateStr: string): number => {
+                    if (!joinedDateStr) return 0;
+                    let joinDate: Date;
+                    if (joinedDateStr.includes('-')) {
+                      joinDate = new Date(joinedDateStr);
+                    } else {
+                      const parts = joinedDateStr.split(' ');
+                      if (parts.length === 2) {
+                        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                        const monthIdx = monthNames.indexOf(parts[0]);
+                        const year = parseInt(parts[1], 10);
+                        if (monthIdx !== -1 && !isNaN(year)) {
+                          joinDate = new Date(year, monthIdx, 1);
+                        } else {
+                          joinDate = new Date(joinedDateStr);
+                        }
+                      } else {
+                        joinDate = new Date(joinedDateStr);
+                      }
+                    }
+                    if (isNaN(joinDate.getTime())) return 0;
+                    const currentDate = new Date('2026-07-16');
+                    return (currentDate.getFullYear() - joinDate.getFullYear()) * 12 + (currentDate.getMonth() - joinDate.getMonth());
+                  };
+
+                  const tenureMonths = getMonthsSinceJoin(joinedDateVal);
+                  const sellerListings = listings.filter(l => l.sellerId === selectedListing.sellerId);
+                  const totalListingsCount = sellerListings.length;
+                  const ratingVal = sellerProf?.rating || selectedListing.sellerRating || 5.0;
+
+                  // Determine dynamic verification level
+                  let badgeLabel = 'Verified Member';
+                  let badgeColorClass = 'bg-slate-50 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700';
+                  let badgeIcon = <Award className="w-3.5 h-3.5 text-slate-400 shrink-0" />;
+                  let tooltipDescription = `Standard seller since ${displayYear}. Has ${totalListingsCount} listings posted with a rating of ★${ratingVal}.`;
+
+                  if (ratingVal >= 4.5 && (tenureMonths >= 12 || totalListingsCount >= 4)) {
+                    badgeLabel = 'Elite Gold Seller';
+                    badgeColorClass = 'bg-amber-50 text-amber-700 border-amber-250 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900/50 hover:bg-amber-100 dark:hover:bg-amber-900/40';
+                    badgeIcon = <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />;
+                    tooltipDescription = `Elite top-rated seller! Member for ${getAccountAge(joinedDateVal).replace('Member for ', '')} with an outstanding ★${ratingVal} rating and ${totalListingsCount} premium advertisements.`;
+                  } else if (ratingVal >= 4.0 && (tenureMonths >= 3 || totalListingsCount >= 2)) {
+                    badgeLabel = 'Rising Star Seller';
+                    badgeColorClass = 'bg-indigo-50 text-indigo-700 border-indigo-250 dark:bg-indigo-950/30 dark:text-indigo-400 dark:border-indigo-900/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/40';
+                    badgeIcon = <TrendingUp className="w-3.5 h-3.5 text-indigo-500 shrink-0" />;
+                    tooltipDescription = `Highly active rising seller. Account age: ${getAccountAge(joinedDateVal).replace('Member for ', '')}, has published ${totalListingsCount} verified listings with strong ★${ratingVal} feedback.`;
+                  } else if (selectedListing.sellerVerified || (sellerProf && sellerProf.verified)) {
+                    badgeLabel = 'Verified Safe Trader';
+                    badgeColorClass = 'bg-emerald-50 text-emerald-700 border-emerald-250 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900/50 hover:bg-emerald-100 dark:hover:bg-emerald-900/40';
+                    badgeIcon = <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0" />;
+                    tooltipDescription = `Verified secure profile! Trusted account verified through identity integrity check, with safe transaction records.`;
+                  }
+
                   return (
-                    <div className="bg-white border border-slate-100 rounded-2xl p-6 space-y-5 shadow-sm text-center">
-                      <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest border-b pb-2">Seller Details</h3>
+                    <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-6 space-y-5 shadow-sm text-center">
+                      <h3 className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest border-b border-slate-100 dark:border-slate-800 pb-2">Seller Details</h3>
                       
                       <div className="flex flex-col items-center space-y-2">
-                        <div className="w-16 h-16 bg-blue-500 text-white font-extrabold text-xl rounded-full flex items-center justify-center border border-slate-150 shadow-sm overflow-hidden shrink-0">
+                        <div className="w-16 h-16 bg-blue-500 text-white font-extrabold text-xl rounded-full flex items-center justify-center border border-slate-150 dark:border-slate-800 shadow-sm overflow-hidden shrink-0">
                           {sellerProf && (sellerProf.profilePhotoUrl || sellerProf.avatarUrl) ? (
                             <img 
                               src={sellerProf.profilePhotoUrl || sellerProf.avatarUrl} 
@@ -2659,30 +2715,58 @@ export default function ClassifiedsApp({
                           )}
                         </div>
                         <div>
-                          <h4 className="font-black text-slate-900 text-base flex items-center justify-center gap-1">
+                          <h4 className="font-black text-slate-900 dark:text-white text-base flex items-center justify-center gap-1">
                             {selectedListing.sellerName}
-                            {selectedListing.sellerVerified && <CheckCircle2 className="w-4 h-4 text-blue-600 fill-blue-50" />}
+                            {(selectedListing.sellerVerified || (sellerProf && sellerProf.verified)) && (
+                              <CheckCircle2 className="w-4 h-4 text-blue-600 fill-blue-50 dark:fill-blue-950" />
+                            )}
                           </h4>
-                          <div className="text-[11px] text-slate-400 font-semibold">
+                          <div className="text-[11px] text-slate-400 dark:text-slate-500 font-semibold">
                             {selectedListing.sellerVerified ? 'Verified Member' : 'Member'} since {displayYear}
                           </div>
-                          {/* Member Badge component */}
-                          <div id="member-badge" className="mt-2 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100 shadow-3xs">
-                            <Award className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
-                            <span>{getAccountAge(joinedDateVal)}</span>
+
+                          {/* Member Badge component with interactive Verification Tooltip */}
+                          <div className="relative group mt-2 inline-block">
+                            <div 
+                              id="member-badge" 
+                              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold border shadow-3xs cursor-help transition-all duration-200 ${badgeColorClass}`}
+                            >
+                              {badgeIcon}
+                              <span>{badgeLabel}</span>
+                              <Info className="w-3 h-3 opacity-50 shrink-0 ml-0.5" />
+                            </div>
+
+                            {/* Verified Seller Tooltip */}
+                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2.5 w-64 bg-slate-900 dark:bg-slate-950 text-white text-[11px] font-normal leading-relaxed p-3.5 rounded-xl shadow-xl border border-slate-800 dark:border-slate-800 opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100 pointer-events-none group-hover:pointer-events-auto transition-all duration-200 z-50 text-center">
+                              <div className="flex flex-col items-center gap-1.5">
+                                <div className="flex items-center gap-1 font-bold text-xs">
+                                  {badgeIcon}
+                                  <span className="text-white">{badgeLabel}</span>
+                                </div>
+                                <p className="text-slate-300 font-medium">{tooltipDescription}</p>
+                                <div className="w-full mt-1.5 pt-1.5 border-t border-slate-800 dark:border-slate-800 flex items-center justify-around text-[9px] font-mono text-slate-400">
+                                  <div>Age: {getAccountAge(joinedDateVal).replace('Member for ', '')}</div>
+                                  <div className="border-r border-slate-800 h-3"></div>
+                                  <div>Listings: {totalListingsCount}</div>
+                                </div>
+                              </div>
+                              {/* Tooltip Arrow */}
+                              <div className="absolute top-full left-1/2 -translate-x-1/2 w-2.5 h-2.5 bg-slate-900 dark:bg-slate-950 rotate-45 border-r border-b border-slate-800 dark:border-slate-800 -mt-1.5"></div>
+                            </div>
                           </div>
+
                         </div>
                       </div>
 
-                      <div className="bg-slate-50 rounded-xl p-3 flex justify-around text-xs border border-slate-100">
+                      <div className="bg-slate-50 dark:bg-slate-950 rounded-xl p-3 flex justify-around text-xs border border-slate-100 dark:border-slate-850">
                         <div>
-                          <div className="font-extrabold text-slate-800">★ {selectedListing.sellerRating}</div>
-                          <div className="text-[10px] text-slate-400">Rating</div>
+                          <div className="font-extrabold text-slate-800 dark:text-slate-200">★ {selectedListing.sellerRating}</div>
+                          <div className="text-[10px] text-slate-400 dark:text-slate-500">Rating</div>
                         </div>
-                        <div className="border-r border-slate-200"></div>
+                        <div className="border-r border-slate-250 dark:border-slate-800"></div>
                         <div>
-                          <div className="font-extrabold text-slate-800">{selectedListing.views}</div>
-                          <div className="text-[10px] text-slate-400">Ad Views</div>
+                          <div className="font-extrabold text-slate-800 dark:text-slate-200">{selectedListing.views}</div>
+                          <div className="text-[10px] text-slate-400 dark:text-slate-500">Ad Views</div>
                         </div>
                       </div>
 
@@ -3900,7 +3984,10 @@ export default function ClassifiedsApp({
                 currentLogoBg={websiteLogoBg}
                 currentLightBgColor={websiteLightBgColor}
                 currentDarkBgColor={websiteDarkBgColor}
+                currentLightHeaderColor={websiteLightHeaderColor}
+                currentDarkHeaderColor={websiteDarkHeaderColor}
                 currentShowDemoHub={websiteShowDemoHub}
+                currentTitleCase={websiteTitleCase}
                 onSaveBranding={handleSaveBranding}
                 showToast={showToast}
               />
@@ -4264,6 +4351,93 @@ export default function ClassifiedsApp({
           </div>
         )}
 
+        {/* 8. PRIVACY POLICY VIEW */}
+        {currentView === 'privacy' && (
+          <div className="max-w-4xl mx-auto space-y-8 animate-fade-in text-slate-800 dark:text-slate-100">
+            {/* Header section */}
+            <div className="border-b border-slate-200 dark:border-slate-800 pb-5">
+              <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+                <ShieldCheck className="w-6 h-6 text-blue-600" />
+                Privacy Policy
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1">
+                Last updated: July 18, 2026 • Secure Client-Side Verified Infrastructure
+              </p>
+            </div>
+
+            {/* Privacy Policy Content */}
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 md:p-8 space-y-6 shadow-xs leading-relaxed">
+              <section className="space-y-3">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider text-blue-600">
+                  1. Information We Collect
+                </h3>
+                <p className="text-xs text-slate-600 dark:text-slate-300 font-medium">
+                  We collect information to provide better services to all our users. This includes:
+                </p>
+                <ul className="list-disc pl-5 text-xs text-slate-600 dark:text-slate-300 space-y-1.5 font-medium">
+                  <li><strong>Account Credentials:</strong> Name, email address, phone number, and physical profile address details specified during seller registration.</li>
+                  <li><strong>Classified Listings:</strong> Pictures, description, pricing details, and location markers uploaded to the portal.</li>
+                  <li><strong>Chat Messages:</strong> Communication logs between buyers and sellers conducted via our encrypted real-time chat gateway.</li>
+                </ul>
+              </section>
+
+              <section className="space-y-3">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider text-blue-600">
+                  2. How We Use Information
+                </h3>
+                <p className="text-xs text-slate-600 dark:text-slate-300 font-medium">
+                  The information we collect is strictly utilized for the following core operations:
+                </p>
+                <ul className="list-disc pl-5 text-xs text-slate-600 dark:text-slate-300 space-y-1.5 font-medium">
+                  <li>To verify authentic sellers and listings on our classified platform.</li>
+                  <li>To enable direct contact channels between prospective buyers and sellers via integrated chat mechanisms.</li>
+                  <li>To match nearby advertisements using client-vetted pincodes and state directory mappings.</li>
+                </ul>
+              </section>
+
+              <section className="space-y-3">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider text-blue-600">
+                  3. User Autonomy and Control
+                </h3>
+                <p className="text-xs text-slate-600 dark:text-slate-300 font-medium">
+                  You hold absolute control over your information:
+                </p>
+                <ul className="list-disc pl-5 text-xs text-slate-600 dark:text-slate-300 space-y-1.5 font-medium">
+                  <li>Sellers can delete or mark their advertisement listings as "Sold" at any point, permanently withdrawing them from public directories.</li>
+                  <li>Users can update their full names, avatar graphics, and local registered addresses via the Edit Profile panel in their Seller Dashboard.</li>
+                </ul>
+              </section>
+
+              <section className="space-y-3">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider text-blue-600">
+                  4. Security Protocols
+                </h3>
+                <p className="text-xs text-slate-600 dark:text-slate-300 font-medium">
+                  We employ rigorous client-side and server-side encryption standards. Sensitive data, passwords, and sessions are authorized through secure tokens. Your physical or precise coordinate metrics are never broadcasted to third-party tracking programs without your permission.
+                </p>
+              </section>
+
+              <section className="space-y-3">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider text-blue-600">
+                  5. Contact Us
+                </h3>
+                <p className="text-xs text-slate-600 dark:text-slate-300 font-medium">
+                  If you have questions about this privacy statement or request full deletion of user accounts, please coordinate with our administrator support team at <span className="text-blue-600 font-bold">support@{websiteName.toLowerCase().replace(/\s+/g, '')}.in</span>.
+                </p>
+              </section>
+            </div>
+
+            <div className="flex justify-center pb-6">
+              <button
+                onClick={() => { setSelectedListing(null); setCurrentView('buy'); }}
+                className="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl transition-all shadow-md cursor-pointer flex items-center gap-1.5"
+              >
+                Return to Buyer Feed
+              </button>
+            </div>
+          </div>
+        )}
+
       </main>
 
       {/* Portal Footer Section */}
@@ -4375,13 +4549,16 @@ export default function ClassifiedsApp({
                     Live Seller Chatbox
                   </button>
                 </li>
-                {(currentUser?.role === 'admin' || currentUser?.role === 'moderator') && (
-                  <li>
-                    <button onClick={() => { setSelectedListing(null); setCurrentView('admin'); }} className="hover:text-blue-600 dark:hover:text-blue-400 transition cursor-pointer">
-                      {currentUser.role === 'admin' ? 'Administrator Controls' : 'Manager Control Panel'}
-                    </button>
-                  </li>
-                )}
+                <li>
+                  <button onClick={() => { setSelectedListing(null); setCurrentView('admin'); }} className="hover:text-blue-600 dark:hover:text-blue-400 transition cursor-pointer">
+                    {currentUser?.role === 'admin' ? 'Administrator Controls' : 'Administrator Control Panel'}
+                  </button>
+                </li>
+                <li>
+                  <button onClick={() => { setSelectedListing(null); setCurrentView('privacy'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="hover:text-blue-600 dark:hover:text-blue-400 transition cursor-pointer">
+                    Privacy Policy & Guidelines
+                  </button>
+                </li>
               </ul>
             </div>
 
