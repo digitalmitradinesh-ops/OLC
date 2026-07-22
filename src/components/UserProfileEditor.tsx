@@ -277,7 +277,7 @@ export default function UserProfileEditor({
                 required
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white pl-9 pr-3 py-2 border border-slate-200 focus:border-blue-500 rounded-xl text-xs outline-none transition font-semibold text-slate-800"
+                className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white pl-9 pr-3 py-2 border border-slate-200 focus:border-blue-500 rounded-xl text-xs outline-none transition font-bold text-slate-900 placeholder:text-slate-400"
               />
             </div>
           </div>
@@ -305,7 +305,7 @@ export default function UserProfileEditor({
                     setPhone(e.target.value);
                     if (isPhoneVerified) setIsPhoneVerified(false);
                   }}
-                  className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white pl-9 pr-3 py-2 border border-slate-200 focus:border-blue-500 rounded-xl text-xs outline-none transition font-semibold text-slate-800"
+                  className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white pl-9 pr-3 py-2 border border-slate-200 focus:border-blue-500 rounded-xl text-xs outline-none transition font-bold text-slate-900 placeholder:text-slate-400"
                 />
               </div>
               {!isPhoneVerified && !otpSent && (
@@ -371,7 +371,7 @@ export default function UserProfileEditor({
                 type="text" 
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
-                className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white pl-9 pr-3 py-2 border border-slate-200 focus:border-blue-500 rounded-xl text-xs outline-none transition font-semibold text-slate-800"
+                className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white pl-9 pr-3 py-2 border border-slate-200 focus:border-blue-500 rounded-xl text-xs outline-none transition font-bold text-slate-900 placeholder:text-slate-400"
               />
             </div>
           </div>
@@ -438,7 +438,7 @@ export default function UserProfileEditor({
                 value={profilePhotoUrl}
                 onChange={(e) => setProfilePhotoUrl(e.target.value)}
                 placeholder="Or paste custom image URL: https://..."
-                className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white pl-9 pr-3 py-2 border border-slate-200 focus:border-blue-500 rounded-xl text-xs outline-none transition font-semibold text-slate-800"
+                className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white pl-9 pr-3 py-2 border border-slate-200 focus:border-blue-500 rounded-xl text-xs outline-none transition font-bold text-slate-900 placeholder:text-slate-400"
               />
             </div>
           </div>
@@ -452,7 +452,7 @@ export default function UserProfileEditor({
                 value={avatarUrl}
                 onChange={(e) => setAvatarUrl(e.target.value)}
                 placeholder="https://images.unsplash.com/..."
-                className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white pl-9 pr-3 py-2 border border-slate-200 focus:border-blue-500 rounded-xl text-xs outline-none transition font-semibold text-slate-800"
+                className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white pl-9 pr-3 py-2 border border-slate-200 focus:border-blue-500 rounded-xl text-xs outline-none transition font-bold text-slate-900 placeholder:text-slate-400"
               />
             </div>
           </div>

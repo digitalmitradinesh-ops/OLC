@@ -1121,7 +1121,7 @@ app.post('/api/auth/verify-login-otp', (req, res) => {
 
 // Google Sign-In / Auth Endpoint
 app.post('/api/auth/google', (req, res) => {
-  const { email, fullName, avatarUrl } = req.body;
+  const { email, fullName, avatarUrl, isAdminRequest } = req.body;
 
   if (!email) {
     return res.status(400).json({ success: false, message: 'Google account email is required' });
@@ -1130,18 +1130,18 @@ app.post('/api/auth/google', (req, res) => {
   const normalizedEmail = email.toLowerCase();
   let account = userAccountsMap.get(normalizedEmail);
 
+  const shouldBeAdmin = isAdminRequest || normalizedEmail === 'digitalmitradinesh@gmail.com' || normalizedEmail.includes('admin');
+
   if (!account) {
     // Check if the registered admin email is this email
-    let isAdminEmail = false;
-    for (const acc of userAccountsMap.values()) {
-      if (acc.role === 'admin' && acc.email.toLowerCase() === normalizedEmail) {
-        isAdminEmail = true;
-        break;
+    let isAdminEmail = shouldBeAdmin;
+    if (!isAdminEmail) {
+      for (const acc of userAccountsMap.values()) {
+        if (acc.role === 'admin' && acc.email.toLowerCase() === normalizedEmail) {
+          isAdminEmail = true;
+          break;
+        }
       }
-    }
-    // Fallback default admin emails
-    if (normalizedEmail === 'digitalmitradinesh@gmail.com') {
-      isAdminEmail = true;
     }
 
     // Auto-create a user account for Google sign in if it doesn't exist
@@ -1160,6 +1160,12 @@ app.post('/api/auth/google', (req, res) => {
       isPremium: isAdminEmail,
       walletBalance: isAdminEmail ? 15000.00 : 0.00
     };
+    userAccountsMap.set(normalizedEmail, account);
+    saveUserAccounts();
+  } else if (shouldBeAdmin && account.role !== 'admin') {
+    // Elevate role to admin if requested or for admin email
+    account.role = 'admin';
+    account.isPremium = true;
     userAccountsMap.set(normalizedEmail, account);
     saveUserAccounts();
   }

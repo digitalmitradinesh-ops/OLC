@@ -1891,12 +1891,16 @@ export default function AdminMetricsViewer({ token }: AdminMetricsViewerProps) {
               </div>
 
               {/* 2. WHATSAPP OTP GATEWAY */}
-              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-2xl shadow-xs space-y-4">
+              <div id="whatsapp-credentials-card" className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-2xl shadow-xs space-y-4 transition-all duration-300">
                 <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
                   <div className="flex items-center gap-2.5">
                     <MessageSquare className="w-5 h-5 text-emerald-500" />
                     <div>
-                      <h4 className="font-bold text-sm text-slate-900 dark:text-white">WhatsApp OTP Gateway</h4>
+                      <h4 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                        WhatsApp OTP Gateway
+                        {whatsappProvider === 'twilio' && <span className="text-[10px] bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full font-extrabold uppercase">Twilio Active</span>}
+                        {whatsappProvider === 'whatsapp_cloud_api' && <span className="text-[10px] bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded-full font-extrabold uppercase">Meta Cloud API</span>}
+                      </h4>
                       <p className="text-[11px] text-slate-400">Deliver user SMS/WhatsApp OTP verify challenges instantly</p>
                     </div>
                   </div>
@@ -1913,15 +1917,18 @@ export default function AdminMetricsViewer({ token }: AdminMetricsViewerProps) {
 
                 <div className={`space-y-3 ${!whatsappEnabled ? 'opacity-50 pointer-events-none' : ''}`}>
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Gateway Provider</label>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
+                      <span>Gateway Provider</span>
+                      <span className="text-[10px] text-blue-600 dark:text-blue-400 font-semibold lowercase">(Select Twilio to paste Account SID & Auth Token)</span>
+                    </label>
                     <select
                       value={whatsappProvider}
                       onChange={(e: any) => setWhatsappProvider(e.target.value)}
                       disabled={!whatsappEnabled}
-                      className="w-full text-xs bg-slate-50 dark:bg-slate-800/50 text-slate-800 dark:text-white rounded-xl p-2.5 border border-slate-200 dark:border-slate-700"
+                      className="w-full text-xs font-bold bg-slate-50 dark:bg-slate-800/50 text-slate-800 dark:text-white rounded-xl p-2.5 border-2 border-blue-200 dark:border-blue-900/60 focus:border-blue-500"
                     >
                       <option value="sandbox">Sandbox Simulator Mode (Local bypass)</option>
-                      <option value="twilio">Twilio WhatsApp Business Gateway</option>
+                      <option value="twilio">Twilio WhatsApp Business Gateway (SID, Token & Phone)</option>
                       <option value="whatsapp_cloud_api">Meta WhatsApp Cloud API (Direct)</option>
                     </select>
                   </div>
@@ -2245,6 +2252,29 @@ export default function AdminMetricsViewer({ token }: AdminMetricsViewerProps) {
             {/* TWILIO WHATSAPP GUIDE */}
             {activeGuideTab === 'twilio' && (
               <div className="space-y-4 animate-fade-in text-xs text-slate-600 dark:text-slate-350 leading-relaxed">
+                <div className="p-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl text-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-md">
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-blue-200">Interactive Setup Shortcut</p>
+                    <p className="text-xs font-extrabold text-white">Ready to paste Twilio credentials?</p>
+                    <p className="text-[11px] text-blue-100/90">Clicking below automatically selects Twilio in the form above and jumps to input fields.</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setWhatsappEnabled(true);
+                      setWhatsappProvider('twilio');
+                      const el = document.getElementById('whatsapp-credentials-card');
+                      if (el) {
+                        el.scrollIntoView({ behavior: 'smooth' });
+                      }
+                    }}
+                    className="px-4 py-2.5 bg-white text-blue-700 hover:bg-blue-50 font-black text-xs rounded-xl shadow-sm transition cursor-pointer shrink-0 flex items-center gap-1.5 border-none"
+                  >
+                    <Settings2 className="w-4 h-4 text-blue-600" />
+                    Open Twilio Input Form Above
+                  </button>
+                </div>
+
                 <div className="flex items-start gap-3 p-3 bg-blue-500/5 rounded-xl border border-blue-500/10">
                   <MessageSquare className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
                   <div>
@@ -2274,9 +2304,22 @@ export default function AdminMetricsViewer({ token }: AdminMetricsViewerProps) {
                     <span className="w-5 h-5 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-[10px] font-bold text-slate-600 dark:text-slate-400 shrink-0">3</span>
                     <div>
                       <p className="font-semibold text-slate-800 dark:text-slate-200">Save Credentials & Dispatch Test</p>
-                      <p>Fill in <strong>Account SID</strong>, <strong>Auth Token</strong>, and the sender number (<code className="font-mono bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded">+14155238886</code>), then test using the live verification field below.</p>
+                      <p>Fill in <strong>Account SID</strong>, <strong>Auth Token</strong>, and sender number (<code className="font-mono bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded">+14155238886</code>) in the <strong>WhatsApp OTP Gateway</strong> card above, then click <strong>Save Integration Credentials</strong>.</p>
                     </div>
                   </div>
+                </div>
+
+                <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                  <span className="text-[11px] font-medium text-slate-500">Finished entering details?</span>
+                  <button
+                    type="button"
+                    onClick={handleSaveIntegrations}
+                    disabled={savingIntegrations || loadingIntegrations}
+                    className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-bold rounded-xl text-xs transition flex items-center gap-2 shadow-md cursor-pointer border-none"
+                  >
+                    <Save className="w-4 h-4" />
+                    <span>Save Credentials Now</span>
+                  </button>
                 </div>
               </div>
             )}
@@ -2284,6 +2327,29 @@ export default function AdminMetricsViewer({ token }: AdminMetricsViewerProps) {
             {/* META CLOUD API GUIDE */}
             {activeGuideTab === 'meta' && (
               <div className="space-y-4 animate-fade-in text-xs text-slate-600 dark:text-slate-350 leading-relaxed">
+                <div className="p-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-2xl text-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-md">
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-emerald-200">Interactive Setup Shortcut</p>
+                    <p className="text-xs font-extrabold text-white">Ready to paste Meta Cloud API credentials?</p>
+                    <p className="text-[11px] text-emerald-100/90">Clicking below automatically selects Meta Cloud API in the form above and jumps to input fields.</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setWhatsappEnabled(true);
+                      setWhatsappProvider('whatsapp_cloud_api');
+                      const el = document.getElementById('whatsapp-credentials-card');
+                      if (el) {
+                        el.scrollIntoView({ behavior: 'smooth' });
+                      }
+                    }}
+                    className="px-4 py-2.5 bg-white text-emerald-700 hover:bg-emerald-50 font-black text-xs rounded-xl shadow-sm transition cursor-pointer shrink-0 flex items-center gap-1.5 border-none"
+                  >
+                    <Settings2 className="w-4 h-4 text-emerald-600" />
+                    Open Meta Input Form Above
+                  </button>
+                </div>
+
                 <div className="flex items-start gap-3 p-3 bg-emerald-500/5 rounded-xl border border-emerald-500/10">
                   <CheckCircle className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
                   <div>
@@ -2312,10 +2378,23 @@ export default function AdminMetricsViewer({ token }: AdminMetricsViewerProps) {
                   <div className="flex items-start gap-2.5">
                     <span className="w-5 h-5 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-[10px] font-bold text-slate-600 dark:text-slate-400 shrink-0">3</span>
                     <div>
-                      <p className="font-semibold text-slate-805 dark:text-slate-200">Generate Permanent Bearer Token</p>
-                      <p>In your Meta Business Manager console, under <strong>Users &gt; System Users</strong>, add a system user, assign the <strong>WhatsApp Business</strong> resource with complete access, and click <strong>Generate New Token</strong>. Make sure to select the permanent option.</p>
+                      <p className="font-semibold text-slate-805 dark:text-slate-200">Generate Permanent Bearer Token & Save</p>
+                      <p>In your Meta Business Manager console, under <strong>Users &gt; System Users</strong>, add a system user, assign <strong>WhatsApp Business</strong> access, and generate a permanent token. Paste into the form above and click Save.</p>
                     </div>
                   </div>
+                </div>
+
+                <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                  <span className="text-[11px] font-medium text-slate-500">Finished entering details?</span>
+                  <button
+                    type="button"
+                    onClick={handleSaveIntegrations}
+                    disabled={savingIntegrations || loadingIntegrations}
+                    className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white font-bold rounded-xl text-xs transition flex items-center gap-2 shadow-md cursor-pointer border-none"
+                  >
+                    <Save className="w-4 h-4" />
+                    <span>Save Credentials Now</span>
+                  </button>
                 </div>
               </div>
             )}

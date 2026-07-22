@@ -141,7 +141,7 @@ export default function InteractiveMap({ locationName, price }: InteractiveMapPr
             placeholder="Search nearby places..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="bg-transparent text-[11px] outline-none w-full font-medium text-slate-700 placeholder:text-slate-400"
+            className="bg-transparent text-[11px] outline-none w-full font-bold text-slate-900 placeholder:text-slate-400"
           />
           {searchSuccess && (
             <span className="text-emerald-600 flex items-center shrink-0 animate-fade-in">

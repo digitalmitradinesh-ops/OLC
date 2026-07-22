@@ -53,3 +53,40 @@ html {
 .custom-card-shadow {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
 }
+
+/* Ensure typed text in form inputs, textareas, and selects is clearly visible in black / dark slate on white & light backgrounds */
+input, textarea, select {
+  color: #0f172a; /* text-slate-900 */
+}
+
+input::placeholder, textarea::placeholder {
+  color: #64748b; /* text-slate-500 for crisp placeholder contrast */
+  opacity: 1;
+}
+
+input:focus, textarea:focus, select:focus {
+  color: #0f172a;
+}
+
+/* Dark mode overrides for dark containers */
+.dark input.bg-slate-800,
+.dark input.bg-slate-900,
+.dark textarea.bg-slate-800,
+.dark textarea.bg-slate-900,
+.dark select.bg-slate-800,
+.dark select.bg-slate-900 {
+  color: #f8fafc;
+}
+
+/* Ensure inputs on white or light backgrounds in dark mode still use black text */
+.dark input.bg-white,
+.dark input.bg-slate-50,
+.dark input.bg-slate-100,
+.dark input.focus\:bg-white:focus,
+.dark textarea.bg-white,
+.dark textarea.bg-slate-50,
+.dark select.bg-white,
+.dark select.bg-slate-50 {
+  color: #0f172a !important;
+}
+

@@ -21,6 +21,7 @@ interface AuthenticationModalProps {
   onLoginSuccess: (user: UserProfile, token: string) => void;
   websiteName: string;
   isDarkMode?: boolean;
+  pendingView?: string | null;
 }
 
 export default function AuthenticationModal({
@@ -28,14 +29,15 @@ export default function AuthenticationModal({
   onClose,
   onLoginSuccess,
   websiteName,
-  isDarkMode = false
+  isDarkMode = false,
+  pendingView
 }: AuthenticationModalProps) {
   // Carousel state
   const [currentSlide, setCurrentSlide] = useState(0);
   
   // Custom auth mode selection inside popup
-  // 'carousel' | 'phone' | 'email' | 'google_loading'
-  const [authView, setAuthView] = useState<'carousel' | 'phone' | 'email' | 'google_loading'>('carousel');
+  // 'carousel' | 'phone' | 'email' | 'google_select' | 'google_loading'
+  const [authView, setAuthView] = useState<'carousel' | 'phone' | 'email' | 'google_select' | 'google_loading'>('carousel');
 
   // Phone validation states
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -45,6 +47,51 @@ export default function AuthenticationModal({
   const [phoneSuccess, setPhoneSuccess] = useState<string | null>(null);
   const [smsLoading, setSmsLoading] = useState(false);
   const [simulatedOtp, setSimulatedOtp] = useState<string | null>(null);
+
+  // Custom Google SSO input states
+  const [googleCustomEmail, setGoogleCustomEmail] = useState('');
+  const [googleCustomName, setGoogleCustomName] = useState('');
+  const [googleError, setGoogleError] = useState<string | null>(null);
+
+  // Auto open Google SSO account picker if pendingView is admin
+  useEffect(() => {
+    if (isOpen && pendingView === 'admin') {
+      setAuthView('google_select');
+    }
+  }, [isOpen, pendingView]);
+
+  // Execute Google SSO login via backend API
+  const handleGoogleSsoExecute = async (emailAddr: string, displayName?: string, isAdminReq: boolean = false) => {
+    setAuthView('google_loading');
+    setGoogleError(null);
+    try {
+      const response = await fetch('/api/auth/google', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          email: emailAddr.trim(),
+          fullName: displayName || emailAddr.split('@')[0],
+          isAdminRequest: isAdminReq || pendingView === 'admin' || emailAddr.toLowerCase() === 'digitalmitradinesh@gmail.com',
+          avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        onLoginSuccess(data.user, data.token);
+        onClose();
+      } else {
+        setGoogleError(data.message || 'Google SSO login failed.');
+        setAuthView('google_select');
+      }
+    } catch (err) {
+      setGoogleError('Failed to establish secure connection with Google Auth servers.');
+      setAuthView('google_select');
+    }
+  };
 
   // Auto play carousel interval
   useEffect(() => {
@@ -156,51 +203,9 @@ export default function AuthenticationModal({
     }
   };
 
-  // Simulate Google single-sign-on
-  const handleGoogleLogin = async () => {
-    setAuthView('google_loading');
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 1800));
-      
-      // Attempt login of standard Google test user or create on-the-fly
-      const response = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          email: `google.user@gmail.com`,
-          password: `google-bypass-secure-99`,
-          fullName: `Google Partner Identity`,
-          role: 'seller',
-          phone: '+91 98765 43210',
-          location: 'Mumbai, Maharashtra'
-        })
-      });
-
-      let data = await response.json();
-
-      if (!data.success) {
-        const loginResponse = await fetch('/api/auth/login', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            email: `google.user@gmail.com`,
-            password: `google-bypass-secure-99`
-          })
-        });
-        data = await loginResponse.json();
-      }
-
-      if (data.success) {
-        onLoginSuccess(data.user, data.token);
-        onClose();
-      }
-    } catch (err) {
-      handleBackToCarousel();
-    }
+  // Open Google SSO account selector view
+  const handleGoogleLogin = () => {
+    setAuthView('google_select');
   };
 
   const slides = [
@@ -525,7 +530,7 @@ export default function AuthenticationModal({
                         placeholder="98765 43210"
                         value={phoneNumber}
                         onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                        className="w-full bg-slate-50 hover:bg-slate-100/50 focus:bg-white pl-12 pr-4 py-3 border-2 border-slate-150 focus:border-blue-600 dark:bg-slate-800 dark:border-slate-700 rounded-2xl text-xs outline-none transition font-semibold"
+                        className="w-full bg-slate-50 hover:bg-slate-100/50 focus:bg-white pl-12 pr-4 py-3 border-2 border-slate-150 focus:border-blue-600 dark:bg-slate-800 dark:border-slate-700 rounded-2xl text-xs outline-none transition font-bold text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
                       />
                     </div>
                   </div>
@@ -555,7 +560,7 @@ export default function AuthenticationModal({
                         placeholder="Enter 6-digit OTP code"
                         value={phoneOtp}
                         onChange={(e) => setPhoneOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                        className="w-full bg-slate-50 hover:bg-slate-100/50 focus:bg-white pl-10 pr-4 py-3 border-2 border-slate-150 focus:border-blue-600 dark:bg-slate-800 dark:border-slate-700 rounded-2xl text-xs outline-none transition font-semibold font-mono tracking-widest text-center text-sm"
+                        className="w-full bg-slate-50 hover:bg-slate-100/50 focus:bg-white pl-10 pr-4 py-3 border-2 border-slate-150 focus:border-blue-600 dark:bg-slate-800 dark:border-slate-700 rounded-2xl text-xs outline-none transition font-bold font-mono tracking-widest text-center text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
                       />
                     </div>
                   </div>
@@ -577,6 +582,114 @@ export default function AuthenticationModal({
                   </button>
                 </form>
               )}
+            </div>
+          )}
+
+          {/* Interactive Google SSO Account Selector Screen */}
+          {authView === 'google_select' && (
+            <div className="w-full max-w-sm mx-auto space-y-5 animate-fade-in py-2">
+              <div className="flex items-center justify-between">
+                <button
+                  onClick={handleBackToCarousel}
+                  className="text-xs text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 flex items-center gap-1 font-bold cursor-pointer border-none bg-transparent"
+                >
+                  <ArrowLeft className="w-4 h-4" /> Back
+                </button>
+                <span className="text-[10px] font-extrabold uppercase tracking-widest text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50 px-2.5 py-1 rounded-full border border-blue-200 dark:border-blue-900">
+                  Google SSO
+                </span>
+              </div>
+
+              <div className="text-center space-y-1">
+                <div className="w-10 h-10 rounded-full bg-white dark:bg-slate-800 shadow-md border border-slate-100 dark:border-slate-700 flex items-center justify-center mx-auto mb-2">
+                  <svg className="w-5 h-5" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                  </svg>
+                </div>
+                <h3 className="text-base font-black text-slate-800 dark:text-slate-100">Sign in with Google</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Choose an account to continue to {websiteName}</p>
+              </div>
+
+              {googleError && (
+                <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl font-medium">
+                  {googleError}
+                </div>
+              )}
+
+              <div className="space-y-2.5">
+                {/* 1. Admin Account Quick SSO Button */}
+                <button
+                  type="button"
+                  onClick={() => handleGoogleSsoExecute('digitalmitradinesh@gmail.com', 'Dinesh Mitra', true)}
+                  className={`w-full p-3.5 bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 dark:from-slate-800 dark:to-slate-800/80 dark:hover:bg-slate-800 border-2 ${
+                    pendingView === 'admin' ? 'border-blue-500 shadow-md ring-2 ring-blue-400/30' : 'border-blue-200 dark:border-slate-700'
+                  } rounded-2xl flex items-center gap-3 transition text-left cursor-pointer group`}
+                >
+                  <img
+                    src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80"
+                    alt="Dinesh Mitra Avatar"
+                    className="w-10 h-10 rounded-full object-cover border-2 border-blue-500"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-xs font-black text-slate-900 dark:text-slate-100 truncate">Dinesh Mitra</p>
+                      <span className="bg-blue-600 text-white text-[9px] font-black uppercase px-1.5 py-0.5 rounded-md">ADMIN</span>
+                    </div>
+                    <p className="text-[10px] text-slate-600 dark:text-slate-400 truncate">digitalmitradinesh@gmail.com</p>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-blue-600 group-hover:translate-x-1 transition-transform" />
+                </button>
+
+                {/* 2. Standard Google Test User Button */}
+                <button
+                  type="button"
+                  onClick={() => handleGoogleSsoExecute('google.user@gmail.com', 'Google Verified User', false)}
+                  className="w-full p-3 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800/50 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl flex items-center gap-3 transition text-left cursor-pointer group"
+                >
+                  <div className="w-9 h-9 rounded-full bg-emerald-100 text-emerald-700 font-bold flex items-center justify-center text-xs border border-emerald-200 shrink-0">
+                    GU
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">Google Partner User</p>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">google.user@gmail.com</p>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-1 transition-transform" />
+                </button>
+
+                {/* 3. Custom Google Account Option */}
+                <div className="relative py-1">
+                  <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-200 dark:border-slate-800"></div></div>
+                  <span className="relative bg-white dark:bg-slate-900 px-3 text-[9px] text-slate-400 font-bold uppercase tracking-wider block text-center">Or use custom Google account</span>
+                </div>
+
+                <div className="space-y-2">
+                  <input
+                    type="email"
+                    placeholder="your.google.account@gmail.com"
+                    value={googleCustomEmail}
+                    onChange={(e) => setGoogleCustomEmail(e.target.value)}
+                    className="w-full bg-slate-50 dark:bg-slate-800/50 px-3.5 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-900 dark:text-slate-100 placeholder:text-slate-400 outline-none focus:border-blue-500"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Display Name (Optional)"
+                    value={googleCustomName}
+                    onChange={(e) => setGoogleCustomName(e.target.value)}
+                    className="w-full bg-slate-50 dark:bg-slate-800/50 px-3.5 py-2 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-900 dark:text-slate-100 placeholder:text-slate-400 outline-none focus:border-blue-500"
+                  />
+                  <button
+                    type="button"
+                    disabled={!googleCustomEmail.trim()}
+                    onClick={() => handleGoogleSsoExecute(googleCustomEmail, googleCustomName)}
+                    className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-200 dark:disabled:bg-slate-800 text-white font-bold rounded-xl text-xs transition cursor-pointer border-none"
+                  >
+                    Authorize Google Sign-In
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 

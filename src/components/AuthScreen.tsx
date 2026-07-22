@@ -307,6 +307,19 @@ export default function AuthScreen({
         })
       });
 
+      if (response.status === 502 || response.status === 503) {
+        setErrorMsg('Server is currently starting up or restarting. Please try again in 5-10 seconds.');
+        return;
+      }
+
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        console.error('Server returned non-JSON response on send-login-otp:', text);
+        setErrorMsg(`Server error (${response.status}). Please try again shortly.`);
+        return;
+      }
+
       const data = await response.json();
       if (data.success) {
         setSuccessMsg(data.message);
@@ -344,6 +357,19 @@ export default function AuthScreen({
         })
       });
 
+      if (response.status === 502 || response.status === 503) {
+        setErrorMsg('Server is currently starting up or restarting. Please try again in 5-10 seconds.');
+        return;
+      }
+
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        console.error('Server returned non-JSON response on verify-login-otp:', text);
+        setErrorMsg(`Server error (${response.status}). Please try again shortly.`);
+        return;
+      }
+
       const data = await response.json();
       if (data.success) {
         setSuccessMsg('Authenticated successfully via secure OTP! Loading workspace...');
@@ -378,6 +404,19 @@ export default function AuthScreen({
           avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80'
         })
       });
+
+      if (response.status === 502 || response.status === 503) {
+        setErrorMsg('Server is currently starting up or restarting. Please try again in 5-10 seconds.');
+        return;
+      }
+
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        console.error('Server returned non-JSON response on google sso:', text);
+        setErrorMsg(`Server error (${response.status}). Please try again shortly.`);
+        return;
+      }
 
       const data = await response.json();
       if (data.success) {
@@ -419,6 +458,19 @@ export default function AuthScreen({
           method: forgotMethod
         })
       });
+
+      if (response.status === 502 || response.status === 503) {
+        setErrorMsg('Server is currently starting up or restarting. Please try again in 5-10 seconds.');
+        return;
+      }
+
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        console.error('Server returned non-JSON response on forgot-password:', text);
+        setErrorMsg(`Server error (${response.status}). Please try again shortly.`);
+        return;
+      }
 
       const data = await response.json();
 
@@ -557,7 +609,7 @@ export default function AuthScreen({
                   placeholder="username@gmail.com"
                   value={googleCustomEmail}
                   onChange={(e) => setGoogleCustomEmail(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-800/50 px-3.5 py-2 border rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-100 outline-none focus:border-blue-500"
+                  className="w-full bg-slate-50 dark:bg-slate-800/50 px-3.5 py-2 border rounded-xl text-xs font-bold text-slate-900 dark:text-slate-100 placeholder:text-slate-400 outline-none focus:border-blue-500"
                 />
               </div>
 
@@ -568,7 +620,7 @@ export default function AuthScreen({
                   placeholder="Your Name"
                   value={googleCustomName}
                   onChange={(e) => setGoogleCustomName(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-800/50 px-3.5 py-2 border rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-100 outline-none focus:border-blue-500"
+                  className="w-full bg-slate-50 dark:bg-slate-800/50 px-3.5 py-2 border rounded-xl text-xs font-bold text-slate-900 dark:text-slate-100 placeholder:text-slate-400 outline-none focus:border-blue-500"
                 />
               </div>
             </div>
@@ -639,7 +691,7 @@ export default function AuthScreen({
                   placeholder="you@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-slate-50 hover:bg-slate-100/70 focus:bg-white dark:bg-slate-800 dark:hover:bg-slate-800/80 dark:focus:bg-slate-900 pl-10 pr-4 py-2 border border-slate-200 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-500 rounded-xl text-xs outline-none transition font-semibold text-slate-800 dark:text-slate-100"
+                  className="w-full bg-slate-50 hover:bg-slate-100/70 focus:bg-white dark:bg-slate-800 dark:hover:bg-slate-800/80 dark:focus:bg-slate-900 pl-10 pr-4 py-2 border border-slate-200 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-500 rounded-xl text-xs outline-none transition font-bold text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
                 />
               </div>
             </div>
@@ -663,7 +715,7 @@ export default function AuthScreen({
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-slate-50 hover:bg-slate-100/70 focus:bg-white dark:bg-slate-800 dark:hover:bg-slate-800/80 dark:focus:bg-slate-900 pl-10 pr-10 py-2 border border-slate-200 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-500 rounded-xl text-xs outline-none transition font-semibold text-slate-800 dark:text-slate-100"
+                  className="w-full bg-slate-50 hover:bg-slate-100/70 focus:bg-white dark:bg-slate-800 dark:hover:bg-slate-800/80 dark:focus:bg-slate-900 pl-10 pr-10 py-2 border border-slate-200 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-500 rounded-xl text-xs outline-none transition font-bold text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
                 />
                 <button 
                   type="button" 
@@ -695,7 +747,7 @@ export default function AuthScreen({
                       setCaptchaUserAnswer(e.target.value);
                       setCaptchaError(false);
                     }}
-                    className={`flex-1 bg-white dark:bg-slate-900 px-3 py-1.5 border ${captchaError ? 'border-rose-500' : 'border-slate-200 dark:border-slate-700'} focus:border-blue-500 rounded-lg text-xs outline-none font-semibold text-slate-800 dark:text-slate-100`}
+                    className={`flex-1 bg-white dark:bg-slate-900 px-3 py-1.5 border ${captchaError ? 'border-rose-500' : 'border-slate-200 dark:border-slate-700'} focus:border-blue-500 rounded-lg text-xs outline-none font-bold text-slate-900 dark:text-slate-100 placeholder:text-slate-400`}
                   />
                 </div>
               </div>
@@ -757,7 +809,7 @@ export default function AuthScreen({
                       placeholder={loginOtpChannel === 'email' ? 'you@example.com' : '+91 XXXXX XXXXX'}
                       value={loginIdentifier}
                       onChange={(e) => setLoginIdentifier(e.target.value)}
-                      className="w-full bg-slate-50 hover:bg-slate-100/70 focus:bg-white dark:bg-slate-800 dark:hover:bg-slate-800/80 dark:focus:bg-slate-900 pl-10 pr-4 py-2 border border-slate-200 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-500 rounded-xl text-xs outline-none transition font-semibold text-slate-800 dark:text-slate-100"
+                      className="w-full bg-slate-50 hover:bg-slate-100/70 focus:bg-white dark:bg-slate-800 dark:hover:bg-slate-800/80 dark:focus:bg-slate-900 pl-10 pr-4 py-2 border border-slate-200 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-500 rounded-xl text-xs outline-none transition font-bold text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
                     />
                   </div>
                 </div>
@@ -783,7 +835,7 @@ export default function AuthScreen({
                       placeholder="XXXXXX"
                       value={loginOtpCode}
                       onChange={(e) => setLoginOtpCode(e.target.value)}
-                      className="w-full bg-slate-50 hover:bg-slate-100/70 focus:bg-white dark:bg-slate-800 dark:hover:bg-slate-800/80 dark:focus:bg-slate-900 pl-10 pr-4 py-2 border border-slate-200 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-500 rounded-xl text-xs outline-none transition font-semibold text-slate-800 dark:text-slate-100 tracking-widest text-center"
+                      className="w-full bg-slate-50 hover:bg-slate-100/70 focus:bg-white dark:bg-slate-800 dark:hover:bg-slate-800/80 dark:focus:bg-slate-900 pl-10 pr-4 py-2 border border-slate-200 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-500 rounded-xl text-xs outline-none transition font-bold text-slate-900 dark:text-slate-100 placeholder:text-slate-400 tracking-widest text-center"
                     />
                   </div>
                 </div>
@@ -945,7 +997,7 @@ export default function AuthScreen({
                     placeholder="eg. Ramesh Kumar"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    className="w-full bg-slate-50 hover:bg-slate-100/70 focus:bg-white dark:bg-slate-800 dark:hover:bg-slate-800/80 dark:focus:bg-slate-900 pl-10 pr-4 py-2 border border-slate-200 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-500 rounded-xl text-xs outline-none transition font-semibold text-slate-800 dark:text-slate-100"
+                    className="w-full bg-slate-50 hover:bg-slate-100/70 focus:bg-white dark:bg-slate-800 dark:hover:bg-slate-800/80 dark:focus:bg-slate-900 pl-10 pr-4 py-2 border border-slate-200 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-500 rounded-xl text-xs outline-none transition font-bold text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
                   />
                 </div>
               </div>
@@ -961,7 +1013,7 @@ export default function AuthScreen({
                       placeholder="you@example.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="w-full bg-slate-50 hover:bg-slate-100/70 focus:bg-white dark:bg-slate-800 dark:hover:bg-slate-800/80 dark:focus:bg-slate-900 pl-10 pr-4 py-2 border border-slate-200 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-500 rounded-xl text-xs outline-none transition font-semibold text-slate-800 dark:text-slate-100"
+                      className="w-full bg-slate-50 hover:bg-slate-100/70 focus:bg-white dark:bg-slate-800 dark:hover:bg-slate-800/80 dark:focus:bg-slate-900 pl-10 pr-4 py-2 border border-slate-200 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-500 rounded-xl text-xs outline-none transition font-bold text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
                     />
                   </div>
                 </div>
@@ -976,7 +1028,7 @@ export default function AuthScreen({
                       placeholder="At least 6 chars"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="w-full bg-slate-50 hover:bg-slate-100/70 focus:bg-white dark:bg-slate-800 dark:hover:bg-slate-800/80 dark:focus:bg-slate-900 pl-10 pr-10 py-2 border border-slate-200 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-500 rounded-xl text-xs outline-none transition font-semibold text-slate-800 dark:text-slate-100"
+                      className="w-full bg-slate-50 hover:bg-slate-100/70 focus:bg-white dark:bg-slate-800 dark:hover:bg-slate-800/80 dark:focus:bg-slate-900 pl-10 pr-10 py-2 border border-slate-200 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-500 rounded-xl text-xs outline-none transition font-bold text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
                     />
                     <button 
                       type="button" 
@@ -1000,7 +1052,7 @@ export default function AuthScreen({
                       placeholder="+91 XXXXX XXXXX"
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
-                      className="w-full bg-slate-50 hover:bg-slate-100/70 focus:bg-white dark:bg-slate-800 dark:hover:bg-slate-800/80 dark:focus:bg-slate-900 pl-10 pr-4 py-2 border border-slate-200 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-500 rounded-xl text-xs outline-none transition font-semibold text-slate-800 dark:text-slate-100"
+                      className="w-full bg-slate-50 hover:bg-slate-100/70 focus:bg-white dark:bg-slate-800 dark:hover:bg-slate-800/80 dark:focus:bg-slate-900 pl-10 pr-4 py-2 border border-slate-200 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-500 rounded-xl text-xs outline-none transition font-bold text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
                     />
                   </div>
                 </div>
@@ -1014,7 +1066,7 @@ export default function AuthScreen({
                       placeholder="eg. New Delhi"
                       value={location}
                       onChange={(e) => setLocation(e.target.value)}
-                      className="w-full bg-slate-50 hover:bg-slate-100/70 focus:bg-white dark:bg-slate-800 dark:hover:bg-slate-800/80 dark:focus:bg-slate-900 pl-10 pr-4 py-2 border border-slate-200 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-500 rounded-xl text-xs outline-none transition font-semibold text-slate-800 dark:text-slate-100"
+                      className="w-full bg-slate-50 hover:bg-slate-100/70 focus:bg-white dark:bg-slate-800 dark:hover:bg-slate-800/80 dark:focus:bg-slate-900 pl-10 pr-4 py-2 border border-slate-200 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-500 rounded-xl text-xs outline-none transition font-bold text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
                     />
                   </div>
                 </div>
@@ -1052,7 +1104,7 @@ export default function AuthScreen({
                   placeholder="Answer math verification"
                   value={captchaUserAnswer}
                   onChange={(e) => setCaptchaUserAnswer(e.target.value)}
-                  className="w-full bg-white dark:bg-slate-900 px-3 py-2 border border-slate-200 dark:border-slate-700 focus:border-blue-500 rounded-xl text-xs outline-none font-semibold text-slate-800 dark:text-slate-100"
+                  className="w-full bg-white dark:bg-slate-900 px-3 py-2 border border-slate-200 dark:border-slate-700 focus:border-blue-500 rounded-xl text-xs outline-none font-bold text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
                 />
               </div>
 
@@ -1078,7 +1130,7 @@ export default function AuthScreen({
                         placeholder="you@example.com"
                         value={forgotIdentifier}
                         onChange={(e) => setForgotIdentifier(e.target.value)}
-                        className="w-full bg-slate-50 pl-10 pr-4 py-2 border border-slate-200 dark:border-slate-700 focus:border-blue-500 rounded-xl text-xs outline-none font-semibold"
+                        className="w-full bg-slate-50 pl-10 pr-4 py-2 border border-slate-200 dark:border-slate-700 focus:border-blue-500 rounded-xl text-xs outline-none font-bold text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
                       />
                     </div>
                   </div>
@@ -1111,7 +1163,7 @@ export default function AuthScreen({
                         placeholder="eg. 839102"
                         value={forgotOtp}
                         onChange={(e) => setForgotOtp(e.target.value)}
-                        className="w-full bg-slate-50 px-3 py-2 border border-slate-200 dark:border-slate-700 focus:border-blue-500 rounded-xl text-xs outline-none font-semibold font-mono"
+                        className="w-full bg-slate-50 px-3 py-2 border border-slate-200 dark:border-slate-700 focus:border-blue-500 rounded-xl text-xs outline-none font-bold font-mono text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
                       />
                     </div>
 
@@ -1123,7 +1175,7 @@ export default function AuthScreen({
                         placeholder="Min 6 characters"
                         value={forgotNewPassword}
                         onChange={(e) => setForgotNewPassword(e.target.value)}
-                        className="w-full bg-slate-50 px-3 py-2 border border-slate-200 dark:border-slate-700 focus:border-blue-500 rounded-xl text-xs outline-none font-semibold"
+                        className="w-full bg-slate-50 px-3 py-2 border border-slate-200 dark:border-slate-700 focus:border-blue-500 rounded-xl text-xs outline-none font-bold text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
                       />
                     </div>
                   </div>

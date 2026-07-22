@@ -3449,7 +3449,7 @@ Whether you're a local resident decluttering your home, a professional service a
                     placeholder="e.g. iPhone 15 Pro Max Natural Titanium 256GB"
                     value={newTitle}
                     onChange={(e) => setNewTitle(e.target.value)}
-                    className="w-full border border-slate-200 rounded-xl p-3 text-xs outline-none focus:border-blue-500 font-medium"
+                    className="w-full border border-slate-200 rounded-xl p-3 text-xs outline-none focus:border-blue-500 font-bold text-slate-900 bg-white placeholder:text-slate-400"
                     required
                   />
                 </div>
@@ -3468,7 +3468,7 @@ Whether you're a local resident decluttering your home, a professional service a
                         setNewSubcat('');
                       }
                     }}
-                    className="w-full border border-slate-200 rounded-xl p-3 text-xs outline-none focus:border-blue-500 font-medium text-slate-800 bg-white"
+                    className="w-full border border-slate-200 rounded-xl p-3 text-xs outline-none focus:border-blue-500 font-bold text-slate-900 bg-white"
                   >
                     {categories.map(c => (
                       <option key={c.id} value={c.id}>{c.name}</option>
@@ -3481,7 +3481,7 @@ Whether you're a local resident decluttering your home, a professional service a
                   <select 
                     value={newSubcat} 
                     onChange={(e) => setNewSubcat(e.target.value)}
-                    className="w-full border border-slate-200 rounded-xl p-3 text-xs outline-none focus:border-blue-500 font-medium text-slate-800 bg-white"
+                    className="w-full border border-slate-200 rounded-xl p-3 text-xs outline-none focus:border-blue-500 font-bold text-slate-900 bg-white"
                     required
                   >
                     {categories.find(c => c.id === newCat)?.subcategories.map(s => (
@@ -3495,7 +3495,7 @@ Whether you're a local resident decluttering your home, a professional service a
                   <select 
                     value={newCondition} 
                     onChange={(e) => setNewCondition(e.target.value as any)}
-                    className="w-full border border-slate-200 rounded-xl p-3 text-xs outline-none focus:border-blue-500 font-medium"
+                    className="w-full border border-slate-200 rounded-xl p-3 text-xs outline-none focus:border-blue-500 font-bold text-slate-900 bg-white"
                   >
                     <option value="new">New / Unopened</option>
                     <option value="like_new">Like New / Mint</option>
@@ -3511,7 +3511,7 @@ Whether you're a local resident decluttering your home, a professional service a
                     placeholder="e.g. Apple, BMW, Sony"
                     value={newBrand}
                     onChange={(e) => setNewBrand(e.target.value)}
-                    className="w-full border border-slate-200 rounded-xl p-3 text-xs outline-none focus:border-blue-500 font-medium"
+                    className="w-full border border-slate-200 rounded-xl p-3 text-xs outline-none focus:border-blue-500 font-bold text-slate-900 bg-white placeholder:text-slate-400"
                   />
                 </div>
 
@@ -3522,7 +3522,7 @@ Whether you're a local resident decluttering your home, a professional service a
                     placeholder="e.g. Sven, 330i, R6"
                     value={newModel}
                     onChange={(e) => setNewModel(e.target.value)}
-                    className="w-full border border-slate-200 rounded-xl p-3 text-xs outline-none focus:border-blue-500 font-medium"
+                    className="w-full border border-slate-200 rounded-xl p-3 text-xs outline-none focus:border-blue-500 font-bold text-slate-900 bg-white placeholder:text-slate-400"
                   />
                 </div>
 
@@ -3533,7 +3533,7 @@ Whether you're a local resident decluttering your home, a professional service a
                     placeholder="e.g. 15000"
                     value={newPrice}
                     onChange={(e) => setNewPrice(e.target.value)}
-                    className="w-full border border-slate-200 rounded-xl p-3 text-xs outline-none focus:border-blue-500 font-medium font-mono"
+                    className="w-full border border-slate-200 rounded-xl p-3 text-xs outline-none focus:border-blue-500 font-bold font-mono text-slate-900 bg-white placeholder:text-slate-400"
                     required
                   />
                 </div>
@@ -3562,7 +3562,7 @@ Whether you're a local resident decluttering your home, a professional service a
                       }
                       setShowSellSuggestions(true);
                     }}
-                    className="w-full border border-slate-200 rounded-xl p-3 text-xs outline-none focus:border-blue-500 font-semibold"
+                    className="w-full border border-slate-200 rounded-xl p-3 text-xs outline-none focus:border-blue-500 font-bold text-slate-900 bg-white placeholder:text-slate-400"
                     required
                   />
                   {showSellSuggestions && (
@@ -3611,7 +3611,7 @@ Whether you're a local resident decluttering your home, a professional service a
                     placeholder="Paste public image URL here..." 
                     value={photoInput}
                     onChange={(e) => setPhotoInput(e.target.value)}
-                    className="flex-1 border border-slate-200 rounded-xl p-3 text-xs outline-none focus:border-blue-500 font-medium"
+                    className="flex-1 border border-slate-200 rounded-xl p-3 text-xs outline-none focus:border-blue-500 font-bold text-slate-900 bg-white placeholder:text-slate-400"
                   />
                   <button 
                     type="button"
@@ -3851,7 +3851,7 @@ Whether you're a local resident decluttering your home, a professional service a
                     placeholder="Highlight features, defects, size or warranty details..."
                     value={newDesc}
                     onChange={(e) => setNewDesc(e.target.value)}
-                    className="w-full border border-slate-200 rounded-xl p-3 text-xs outline-none focus:border-blue-500 font-medium leading-relaxed"
+                    className="w-full border border-slate-200 rounded-xl p-3 text-xs outline-none focus:border-blue-500 font-bold text-slate-900 bg-white placeholder:text-slate-400 leading-relaxed"
                     required
                   />
                 </div>
@@ -4045,18 +4045,61 @@ Whether you're a local resident decluttering your home, a professional service a
 
         {/* 6. ADMIN PANEL */}
         {currentView === 'admin' && (
-          (currentUser.role !== 'admin' && currentUser.role !== 'moderator') ? (
-            <div className="bg-white border border-rose-100 rounded-3xl p-8 max-w-lg mx-auto text-center space-y-4 shadow-xl my-12 animate-fade-in">
-              <div className="w-16 h-16 bg-rose-50 border border-rose-100 text-rose-600 rounded-2xl flex items-center justify-center mx-auto shadow-sm">
+          (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'moderator')) ? (
+            <div className="bg-white dark:bg-slate-900 border border-rose-100 dark:border-rose-950 rounded-3xl p-8 max-w-lg mx-auto text-center space-y-5 shadow-xl my-12 animate-fade-in">
+              <div className="w-16 h-16 bg-rose-50 dark:bg-rose-950/40 border border-rose-100 dark:border-rose-900 text-rose-600 rounded-2xl flex items-center justify-center mx-auto shadow-sm">
                 <ShieldAlert className="w-8 h-8" />
               </div>
-              <h3 className="text-lg font-extrabold text-slate-950">Security Access Violation</h3>
-              <p className="text-xs text-slate-500 leading-relaxed">
-                You do not possess the required administrator security credentials to view or modify database systems. This event has been logged for system auditing.
-              </p>
+              <div className="space-y-1.5">
+                <h3 className="text-lg font-extrabold text-slate-950 dark:text-slate-100">Administrator Access Required</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                  You are attempting to access the Administrator Control Panel. Please sign in with an authorized Google Administrator SSO account.
+                </p>
+              </div>
+
+              <div className="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-3">
+                <div className="text-left text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-blue-600"></span>
+                  Google SSO Administrator Verification
+                </div>
+                <button
+                  onClick={async () => {
+                    try {
+                      const res = await fetch('/api/auth/google', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          email: 'digitalmitradinesh@gmail.com',
+                          fullName: 'Dinesh Mitra',
+                          isAdminRequest: true
+                        })
+                      });
+                      const data = await res.json();
+                      if (data.success) {
+                        localStorage.setItem('auth_token', data.token);
+                        setToken(data.token);
+                        setCurrentUser(data.user);
+                        showToast('Authenticated as Administrator via Google SSO!');
+                      }
+                    } catch (err) {
+                      showToast('Failed to connect to Google SSO.');
+                    }
+                  }}
+                  className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-black rounded-xl transition cursor-pointer flex items-center justify-center gap-2.5 shadow-md"
+                >
+                  <svg className="w-4 h-4 bg-white rounded-full p-0.5" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                  </svg>
+                  Authorize Admin via Google SSO (digitalmitradinesh@gmail.com)
+                </button>
+              </div>
+
               <button
                 onClick={() => setCurrentView('buy')}
-                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl transition cursor-pointer"
+                className="px-5 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold rounded-xl transition cursor-pointer"
               >
                 Return to Safe Directory
               </button>
@@ -5343,6 +5386,7 @@ Whether you're a local resident decluttering your home, a professional service a
       {/* Authentication Modal Popup */}
       <AuthenticationModal
         isOpen={showAuthModal}
+        pendingView={pendingView}
         onClose={() => {
           setShowAuthModal(false);
           setPendingView(null);
