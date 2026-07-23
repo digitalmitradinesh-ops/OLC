@@ -681,6 +681,30 @@ export default function AuthScreen({
 
         {loginMethod === 'password' ? (
           <form onSubmit={handleLoginSubmit} className="space-y-4">
+            {/* Quick Admin Preset Auto-fill */}
+            <div className="p-2.5 bg-blue-50/60 dark:bg-blue-950/30 rounded-xl border border-blue-100 dark:border-blue-900/40 flex items-center justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <div className="text-[10px] font-black uppercase tracking-wider text-blue-700 dark:text-blue-300 flex items-center gap-1.5">
+                  <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
+                  Primary Admin Credentials
+                </div>
+                <div className="text-[11px] font-mono text-slate-600 dark:text-slate-400 truncate mt-0.5">
+                  digitalmitradinesh@gmail.com | Admin@123
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setEmail('digitalmitradinesh@gmail.com');
+                  setPassword('Admin@123');
+                  setErrorMsg(null);
+                }}
+                className="px-2.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-[10px] rounded-lg cursor-pointer shrink-0 transition"
+              >
+                Auto-fill
+              </button>
+            </div>
+
             <div className="space-y-1">
               <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">Email Address</label>
               <div className="relative flex items-center">
