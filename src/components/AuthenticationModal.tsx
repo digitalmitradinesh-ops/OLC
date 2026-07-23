@@ -53,15 +53,15 @@ export default function AuthenticationModal({
   const [googleCustomName, setGoogleCustomName] = useState('');
   const [googleError, setGoogleError] = useState<string | null>(null);
 
-  // Auto open Google SSO account picker if pendingView is admin
+  // Default to carousel view whenever modal opens
   useEffect(() => {
-    if (isOpen && pendingView === 'admin') {
-      setAuthView('google_select');
+    if (isOpen) {
+      setAuthView('carousel');
     }
-  }, [isOpen, pendingView]);
+  }, [isOpen]);
 
   // Execute Google SSO login via backend API
-  const handleGoogleSsoExecute = async (emailAddr: string, displayName?: string, isAdminReq: boolean = false) => {
+  const handleGoogleSsoExecute = async (emailAddr: string, displayName?: string) => {
     setAuthView('google_loading');
     setGoogleError(null);
     try {
@@ -73,7 +73,7 @@ export default function AuthenticationModal({
         body: JSON.stringify({
           email: emailAddr.trim(),
           fullName: displayName || emailAddr.split('@')[0],
-          isAdminRequest: isAdminReq || pendingView === 'admin',
+          isAdminRequest: false,
           avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80'
         })
       });
@@ -82,12 +82,11 @@ export default function AuthenticationModal({
       if (!contentType || !contentType.includes('application/json')) {
         console.warn('Google SSO endpoint returned non-JSON response in modal. Executing client session fallback.');
         const cleanEmail = emailAddr.trim().toLowerCase();
-        const isAdmin = cleanEmail === 'digitalmitradinesh@gmail.com' || (isAdminReq && pendingView === 'admin');
         const fallbackUser: UserProfile = {
-          id: isAdmin ? 'user-curr' : `user-modal-g-${Date.now()}`,
+          id: `user-modal-g-${Date.now()}`,
           email: cleanEmail,
           fullName: displayName || (cleanEmail.split('@')[0] || 'Google User'),
-          role: isAdmin ? 'admin' : 'seller',
+          role: 'seller',
           avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
           verified: true,
           isPremium: true
@@ -110,12 +109,11 @@ export default function AuthenticationModal({
     } catch (err) {
       console.warn('Error connecting to Google SSO server in modal. Executing fallback.');
       const cleanEmail = emailAddr.trim().toLowerCase();
-      const isAdmin = cleanEmail === 'digitalmitradinesh@gmail.com' || (isAdminReq && pendingView === 'admin');
       const fallbackUser: UserProfile = {
-        id: isAdmin ? 'user-curr' : `user-modal-g-${Date.now()}`,
+        id: `user-modal-g-${Date.now()}`,
         email: cleanEmail,
         fullName: displayName || (cleanEmail.split('@')[0] || 'Google User'),
-        role: isAdmin ? 'admin' : 'seller',
+        role: 'seller',
         avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
         verified: true,
         isPremium: true

@@ -782,6 +782,63 @@ app.post('/api/backend/admin-setup-reset', (req, res) => {
   });
 });
 
+// Dedicated POST endpoint for Admin Email & Password Reset
+app.post('/api/admin/reset-email', (req, res) => {
+  const { newEmail, adminPassword, currentAdminEmail } = req.body;
+  if (!newEmail) {
+    return res.status(400).json({ success: false, message: 'New admin email is required.' });
+  }
+  const normalizedNewEmail = newEmail.trim().toLowerCase();
+  
+  let adminAccount: UserAccount | undefined;
+  let oldKey: string | undefined;
+
+  for (const [key, acc] of userAccountsMap.entries()) {
+    if (acc.role === 'admin' || key === currentAdminEmail?.toLowerCase() || key === 'digitalmitradinesh@gmail.com') {
+      adminAccount = acc;
+      oldKey = key;
+      break;
+    }
+  }
+
+  if (adminAccount) {
+    if (oldKey && oldKey !== normalizedNewEmail) {
+      userAccountsMap.delete(oldKey);
+    }
+    adminAccount.email = normalizedNewEmail;
+    if (adminPassword) {
+      adminAccount.passwordHash = hashPassword(adminPassword);
+    }
+    userAccountsMap.set(normalizedNewEmail, adminAccount);
+  } else {
+    adminAccount = {
+      id: `user-admin-${Date.now()}`,
+      email: normalizedNewEmail,
+      passwordHash: hashPassword(adminPassword || 'Admin@123'),
+      phone: '+91 98765 43210',
+      fullName: 'Administrator',
+      avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+      location: 'New Delhi (110001)',
+      role: 'admin',
+      rating: 5.0,
+      joinedDate: new Date().toISOString().split('T')[0],
+      verified: true,
+      isPremium: true,
+      walletBalance: 15000.00
+    };
+    userAccountsMap.set(normalizedNewEmail, adminAccount);
+  }
+
+  saveUserAccounts();
+
+  const { passwordHash, ...userProfile } = adminAccount;
+  res.json({
+    success: true,
+    message: `Admin email successfully updated to ${normalizedNewEmail}`,
+    user: userProfile
+  });
+});
+
 // Secure Login Endpoint
 app.post('/api/auth/login', (req, res) => {
   const { email, password } = req.body;
