@@ -56,6 +56,7 @@ html {
 
 /* High-Contrast Visible Input & Form Control Typography */
 input, textarea, select {
+  font-weight: 600;
   color: #0f172a;
 }
 
@@ -64,21 +65,66 @@ input::placeholder, textarea::placeholder {
   opacity: 1;
 }
 
-/* In dark mode, ensure typed text on dark inputs is bright white with full contrast */
-.dark input, .dark textarea, .dark select {
+/* Ensure dropdown options have distinct background and text colors */
+select option {
+  background-color: #ffffff;
+  color: #0f172a;
+}
+
+/* Dark mode inputs and dark container controls */
+.dark input, 
+.dark textarea, 
+.dark select,
+html.dark input,
+html.dark textarea,
+html.dark select,
+body.dark input,
+body.dark textarea,
+body.dark select,
+[data-theme="dark"] input,
+[data-theme="dark"] textarea,
+[data-theme="dark"] select {
   color: #f8fafc;
 }
 
-.dark input::placeholder, .dark textarea::placeholder {
+.dark input::placeholder, 
+.dark textarea::placeholder,
+html.dark input::placeholder,
+html.dark textarea::placeholder,
+body.dark input::placeholder,
+body.dark textarea::placeholder {
   color: #94a3b8;
   opacity: 1;
 }
 
-/* Overrides for inputs that have explicit white backgrounds without dark background classes */
-.dark input.bg-white:not([class*="dark:bg-"]),
-.dark textarea.bg-white:not([class*="dark:bg-"]),
-.dark select.bg-white:not([class*="dark:bg-"]) {
+.dark select option,
+html.dark select option,
+body.dark select option {
+  background-color: #1e293b;
+  color: #f8fafc;
+}
+
+/* Dark background controls anywhere (light or dark mode) */
+input[class*="bg-slate-800"], input[class*="bg-slate-900"], input[class*="bg-slate-950"], input[class*="bg-black"], input[class*="bg-slate-700"],
+textarea[class*="bg-slate-800"], textarea[class*="bg-slate-900"], textarea[class*="bg-slate-950"], textarea[class*="bg-black"], textarea[class*="bg-slate-700"],
+select[class*="bg-slate-800"], select[class*="bg-slate-900"], select[class*="bg-slate-950"], select[class*="bg-black"], select[class*="bg-slate-700"] {
+  color: #f8fafc !important;
+}
+
+input[class*="bg-slate-800"]::placeholder, input[class*="bg-slate-900"]::placeholder, input[class*="bg-slate-950"]::placeholder, input[class*="bg-black"]::placeholder,
+textarea[class*="bg-slate-800"]::placeholder, textarea[class*="bg-slate-900"]::placeholder, textarea[class*="bg-slate-950"]::placeholder, textarea[class*="bg-black"]::placeholder {
+  color: #94a3b8 !important;
+}
+
+/* Light background controls anywhere */
+input[class*="bg-white"], input[class*="bg-slate-50"], input[class*="bg-slate-100"],
+textarea[class*="bg-white"], textarea[class*="bg-slate-50"], textarea[class*="bg-slate-100"],
+select[class*="bg-white"], select[class*="bg-slate-50"], select[class*="bg-slate-100"] {
   color: #0f172a !important;
-  background-color: #ffffff !important;
+}
+
+input[class*="bg-white"]::placeholder, input[class*="bg-slate-50"]::placeholder, input[class*="bg-slate-100"]::placeholder,
+textarea[class*="bg-white"]::placeholder, textarea[class*="bg-slate-50"]::placeholder, textarea[class*="bg-slate-100"]::placeholder {
+  color: #64748b !important;
 }
 

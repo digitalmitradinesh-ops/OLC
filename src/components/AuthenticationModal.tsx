@@ -561,7 +561,7 @@ export default function AuthenticationModal({
                         placeholder="98765 43210"
                         value={phoneNumber}
                         onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                        className="w-full bg-slate-50 hover:bg-slate-100/50 focus:bg-white pl-12 pr-4 py-3 border-2 border-slate-150 focus:border-blue-600 dark:bg-slate-800 dark:border-slate-700 rounded-2xl text-xs outline-none transition font-bold text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
+                        className="w-full bg-slate-50 hover:bg-slate-100/50 focus:bg-white pl-12 pr-4 py-3 border-2 border-slate-300 dark:border-slate-600 focus:border-blue-600 dark:bg-slate-800 rounded-2xl text-xs outline-none transition font-black text-slate-950 dark:text-white placeholder:text-slate-400"
                       />
                     </div>
                   </div>
@@ -591,7 +591,7 @@ export default function AuthenticationModal({
                         placeholder="Enter 6-digit OTP code"
                         value={phoneOtp}
                         onChange={(e) => setPhoneOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                        className="w-full bg-slate-50 hover:bg-slate-100/50 focus:bg-white pl-10 pr-4 py-3 border-2 border-slate-150 focus:border-blue-600 dark:bg-slate-800 dark:border-slate-700 rounded-2xl text-xs outline-none transition font-bold font-mono tracking-widest text-center text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
+                        className="w-full bg-slate-50 hover:bg-slate-100/50 focus:bg-white pl-10 pr-4 py-3 border-2 border-slate-300 dark:border-slate-600 focus:border-blue-600 dark:bg-slate-800 rounded-2xl text-xs outline-none transition font-black font-mono tracking-widest text-center text-sm text-slate-950 dark:text-white placeholder:text-slate-400"
                       />
                     </div>
                   </div>
@@ -654,7 +654,7 @@ export default function AuthenticationModal({
                 {/* 1. Standard Google Verified User Button */}
                 <button
                   type="button"
-                  onClick={() => handleGoogleSsoExecute('google.user@gmail.com', 'Google Verified User', false)}
+                  onClick={() => handleGoogleSsoExecute('google.user@gmail.com', 'Google Verified User')}
                   className="w-full p-3.5 bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 dark:from-slate-800 dark:to-slate-800/80 dark:hover:bg-slate-800 border border-blue-200 dark:border-slate-700 rounded-2xl flex items-center gap-3 transition text-left cursor-pointer group"
                 >
                   <div className="w-10 h-10 rounded-full bg-blue-600 text-white font-black flex items-center justify-center text-xs border border-blue-500 shrink-0">

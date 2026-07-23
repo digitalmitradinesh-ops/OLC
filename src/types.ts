@@ -6,17 +6,17 @@
 export interface UserProfile {
   id: string;
   email: string;
-  phone: string;
+  phone?: string;
   fullName: string;
-  avatarUrl: string;
+  avatarUrl?: string;
   profilePhotoUrl?: string;
-  location: string;
+  location?: string;
   role: 'buyer' | 'seller' | 'business' | 'dealer' | 'shop' | 'property_agent' | 'car_dealer' | 'admin' | 'moderator';
-  rating: number;
-  joinedDate: string;
+  rating?: number;
+  joinedDate?: string;
   verified: boolean;
   isPremium: boolean;
-  walletBalance: number;
+  walletBalance?: number;
   managerPermissions?: {
     manageListings: boolean;
     manageCategories: boolean;

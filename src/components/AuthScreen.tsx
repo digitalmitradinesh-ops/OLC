@@ -696,7 +696,7 @@ export default function AuthScreen({
                   placeholder="you@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-slate-50 hover:bg-slate-100/70 focus:bg-white dark:bg-slate-800 dark:hover:bg-slate-800/80 dark:focus:bg-slate-900 pl-10 pr-4 py-2 border border-slate-200 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-500 rounded-xl text-xs outline-none transition font-bold text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
+                  className="w-full bg-slate-50 hover:bg-slate-100/70 focus:bg-white dark:bg-slate-800 dark:hover:bg-slate-800/80 dark:focus:bg-slate-900 pl-10 pr-4 py-2.5 border-2 border-slate-300 dark:border-slate-600 focus:border-blue-600 dark:focus:border-blue-500 rounded-xl text-xs outline-none transition font-black text-slate-950 dark:text-white placeholder:text-slate-400"
                 />
               </div>
             </div>
@@ -720,7 +720,7 @@ export default function AuthScreen({
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-slate-50 hover:bg-slate-100/70 focus:bg-white dark:bg-slate-800 dark:hover:bg-slate-800/80 dark:focus:bg-slate-900 pl-10 pr-10 py-2 border border-slate-200 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-500 rounded-xl text-xs outline-none transition font-bold text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
+                  className="w-full bg-slate-50 hover:bg-slate-100/70 focus:bg-white dark:bg-slate-800 dark:hover:bg-slate-800/80 dark:focus:bg-slate-900 pl-10 pr-10 py-2.5 border-2 border-slate-300 dark:border-slate-600 focus:border-blue-600 dark:focus:border-blue-500 rounded-xl text-xs outline-none transition font-black text-slate-950 dark:text-white placeholder:text-slate-400"
                 />
                 <button 
                   type="button" 
@@ -814,7 +814,7 @@ export default function AuthScreen({
                       placeholder={loginOtpChannel === 'email' ? 'you@example.com' : '+91 XXXXX XXXXX'}
                       value={loginIdentifier}
                       onChange={(e) => setLoginIdentifier(e.target.value)}
-                      className="w-full bg-slate-50 hover:bg-slate-100/70 focus:bg-white dark:bg-slate-800 dark:hover:bg-slate-800/80 dark:focus:bg-slate-900 pl-10 pr-4 py-2 border border-slate-200 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-500 rounded-xl text-xs outline-none transition font-bold text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
+                      className="w-full bg-slate-50 hover:bg-slate-100/70 focus:bg-white dark:bg-slate-800 dark:hover:bg-slate-800/80 dark:focus:bg-slate-900 pl-10 pr-4 py-2.5 border-2 border-slate-300 dark:border-slate-600 focus:border-blue-600 dark:focus:border-blue-500 rounded-xl text-xs outline-none transition font-black text-slate-950 dark:text-white placeholder:text-slate-400"
                     />
                   </div>
                 </div>
@@ -840,7 +840,7 @@ export default function AuthScreen({
                       placeholder="XXXXXX"
                       value={loginOtpCode}
                       onChange={(e) => setLoginOtpCode(e.target.value)}
-                      className="w-full bg-slate-50 hover:bg-slate-100/70 focus:bg-white dark:bg-slate-800 dark:hover:bg-slate-800/80 dark:focus:bg-slate-900 pl-10 pr-4 py-2 border border-slate-200 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-500 rounded-xl text-xs outline-none transition font-bold text-slate-900 dark:text-slate-100 placeholder:text-slate-400 tracking-widest text-center"
+                      className="w-full bg-slate-50 hover:bg-slate-100/70 focus:bg-white dark:bg-slate-800 dark:hover:bg-slate-800/80 dark:focus:bg-slate-900 pl-10 pr-4 py-2.5 border-2 border-slate-300 dark:border-slate-600 focus:border-blue-600 dark:focus:border-blue-500 rounded-xl text-xs outline-none transition font-black text-slate-950 dark:text-white placeholder:text-slate-400 tracking-widest text-center"
                     />
                   </div>
                 </div>

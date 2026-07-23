@@ -1998,11 +1998,11 @@ Whether you're a local resident decluttering your home, a professional service a
           <div>
             {websiteName.toUpperCase() === 'LOCALMARKET' ? (
               <>
-                <span className="text-lg font-black tracking-tight text-slate-800 dark:text-white">LOCAL</span>
+                <span className="text-lg font-black tracking-tight text-slate-950 dark:text-white">LOCAL</span>
                 <span className="text-lg font-black tracking-tight text-blue-600 dark:text-blue-400">MARKET</span>
               </>
             ) : (
-              <span className="text-lg font-black tracking-tight text-blue-600 dark:text-blue-400">
+              <span className="text-lg font-black tracking-tight text-slate-950 dark:text-white">
                 {websiteTitleCase === 'as_typed' 
                   ? websiteName 
                   : websiteTitleCase === 'lowercase' 
@@ -2015,8 +2015,8 @@ Whether you're a local resident decluttering your home, a professional service a
 
         {/* Search bar inside header (Only active on browse mode) */}
         {currentView === 'buy' && !selectedListing && (
-          <div className="hidden lg:flex flex-1 max-w-2xl bg-slate-100 rounded-xl px-4 py-2 items-center gap-2.5 border border-transparent focus-within:border-blue-600 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-600/10 transition-all duration-200">
-            <div className="relative flex items-center gap-1.5 text-slate-500 border-r border-slate-200 pr-2.5 max-w-[240px] w-full">
+          <div className="hidden lg:flex flex-1 max-w-2xl bg-slate-100 dark:bg-slate-800 rounded-xl px-4 py-2 items-center gap-2.5 border border-slate-200/60 dark:border-slate-700 focus-within:border-blue-600 focus-within:bg-white dark:focus-within:bg-slate-900 focus-within:ring-2 focus-within:ring-blue-600/10 transition-all duration-200">
+            <div className="relative flex items-center gap-1.5 text-slate-500 border-r border-slate-200 dark:border-slate-700 pr-2.5 max-w-[240px] w-full">
               <MapPin className="w-4 h-4 shrink-0 text-blue-600 animate-pulse" />
               <input 
                 type="text" 
@@ -2040,7 +2040,7 @@ Whether you're a local resident decluttering your home, a professional service a
                   setShowSearchSuggestions(true);
                 }}
                 placeholder="PIN code or city..."
-                className="bg-transparent text-xs outline-none font-semibold w-full text-slate-800"
+                className="bg-transparent text-xs outline-none font-bold w-full text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
               />
               {showSearchSuggestions && (
                 <>
@@ -2225,7 +2225,7 @@ Whether you're a local resident decluttering your home, a professional service a
               placeholder={isAiSearchActive ? "Describe what you want (e.g. pristine condition gaming phone below 50k)..." : "Search cars, iPhones, electronics..."}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="bg-transparent text-xs w-full outline-none font-medium text-slate-800 placeholder:text-slate-400"
+              className="bg-transparent text-xs w-full outline-none font-bold text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
             />
             <button
               type="button"
@@ -5618,6 +5618,13 @@ Whether you're a local resident decluttering your home, a professional service a
                 <li>
                   <button onClick={() => handleNavigate('admin')} className="hover:text-blue-600 dark:hover:text-blue-400 transition cursor-pointer">
                     {currentUser?.role === 'admin' ? 'Administrator Controls' : 'Administrator Control Panel'}
+                  </button>
+                </li>
+                <li>
+                  <button onClick={() => { setSelectedListing(null); setCurrentView('db_schema'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="hover:text-emerald-600 dark:hover:text-emerald-400 font-bold transition cursor-pointer flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+                    <Database className="w-3.5 h-3.5" />
+                    <span>Supabase SQL Editor & Studio</span>
+                    <span className="text-[9px] bg-emerald-100 dark:bg-emerald-950 px-1 py-0.2 rounded font-mono font-black uppercase">NEW</span>
                   </button>
                 </li>
                 <li>
